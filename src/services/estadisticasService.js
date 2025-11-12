@@ -1,0 +1,255 @@
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../database/firebaseconfig';
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate();
+  if (value.seconds && typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export async function getIngresosMensuales(year) {
+  // Devuelve [{ month: 'Ene', amount: 1234 }, ...]
+  try {
+    const q = collection(db, 'Factura');
+    const snap = await getDocs(q);
+    const months = new Array(12).fill(0);
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha) || toDate(raw.fecha) || toDate(raw.Fecha_Pago) || toDate(raw.createdAt);
+      if (!fecha) return;
+      const y = fecha.getFullYear();
+      if (year && y !== year) return;
+      const m = fecha.getMonth();
+      const monto = Number(raw.Monto_Decimal ?? raw.monto ?? raw.Monto ?? raw.MontoDecimal ?? 0) || 0;
+      months[m] += monto;
+    });
+
+    const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return months.map((amount, i) => ({ month: names[i], amount }));
+  } catch (e) {
+    console.error('getIngresosMensuales error', e);
+    return [];
+  }
+}
+
+export async function getDistribucionServicios() {
+  // Devuelve [{ name: 'Ataúd', count: 10 }, ...]
+  try {
+    const contratosSnap = await getDocs(collection(db, 'Contrato'));
+    const serviceCounts = {};
+
+    for (const d of contratosSnap.docs) {
+      const raw = d.data();
+      let serviceName = raw.Servicio || raw.ServicioNombre || raw.ServicioId || raw.Servicio_id || null;
+      if (!serviceName && raw.ServicioId) serviceName = raw.ServicioId;
+
+      // Si serviceName parece ser un id, intentar obtener el documento de Servicio
+      if (serviceName && typeof serviceName === 'string' && serviceName.length === 20) {
+        try {
+          const sdoc = await getDoc(doc(db, 'Servicio', serviceName));
+          if (sdoc.exists()) {
+            const sraw = sdoc.data();
+            serviceName = sraw.nombre || sraw.Nombre || sraw.name || serviceName;
+          }
+        } catch (er) {
+          // ignore
+        }
+      }
+
+      const key = (serviceName || 'Sin especificar').toString();
+      serviceCounts[key] = (serviceCounts[key] || 0) + 1;
+    }
+
+    return Object.keys(serviceCounts).map(k => ({ name: k, count: serviceCounts[k] }));
+  } catch (e) {
+    console.error('getDistribucionServicios error', e);
+    return [];
+  }
+}
+
+export async function getEvolucionContratos(year) {
+  // Devuelve [{ month: 'Ene', value: 12 }, ...] contando contratos por mes
+  try {
+    const snap = await getDocs(collection(db, 'Contrato'));
+    const months = new Array(12).fill(0);
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha_Creacion) || toDate(raw.fechaCreacion) || toDate(raw.Fecha_Inicio) || toDate(raw.FechaInicio) || toDate(raw.createdAt);
+      if (!fecha) return;
+      const y = fecha.getFullYear();
+      if (year && y !== year) return;
+      const m = fecha.getMonth();
+      months[m] += 1;
+    });
+
+    const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return months.map((value, i) => ({ month: names[i], value }));
+  } catch (e) {
+    console.error('getEvolucionContratos error', e);
+    return [];
+  }
+}
+
+// Total cobrado por agente en el año dado. Devuelve [{ agent: 'Nombre', total: 1234 }, ...]
+export async function getCobrosPorAgente(year) {
+  try {
+    const snap = await getDocs(collection(db, 'Factura'));
+    const totals = {};
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha) || toDate(raw.fecha) || toDate(raw.Fecha_Pago) || toDate(raw.createdAt);
+      if (!fecha) return;
+      if (year && fecha.getFullYear() !== year) return;
+      const monto = Number(raw.Monto_Decimal ?? raw.monto ?? raw.Monto ?? raw.MontoDecimal ?? 0) || 0;
+
+      // buscar nombre/identificador del agente en varios campos
+      let agent = raw.Agente || raw.AgenteNombre || raw.AgenteId || raw.Cobrador || raw.CobradorId || raw.agente || null;
+      if (!agent && raw.AgenteId && typeof raw.AgenteId === 'string') agent = raw.AgenteId;
+      const key = (agent || 'Sin agente').toString();
+      totals[key] = (totals[key] || 0) + monto;
+    });
+
+    return Object.keys(totals).map(k => ({ agent: k, total: totals[k] }));
+  } catch (e) {
+    console.error('getCobrosPorAgente error', e);
+    return [];
+  }
+}
+
+// Cuenta de contratos por estado: activos, vencidos, pendientes
+export async function getEstadoContratosCounts() {
+  try {
+    const snap = await getDocs(collection(db, 'Contrato'));
+    const counts = { activos: 0, vencidos: 0, pendientes: 0 };
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const estado = (raw.Estado || raw.estado || raw.EstadoContrato || raw.estadoContrato || '').toString().toLowerCase();
+      if (estado.includes('vig') || estado.includes('activo')) counts.activos += 1;
+      else if (estado.includes('venc') || estado.includes('vencido') || estado.includes('vencidos')) counts.vencidos += 1;
+      else if (estado.includes('pend') || estado.includes('pendiente')) counts.pendientes += 1;
+      else counts.activos += 1; // fallback
+    });
+
+    return counts;
+  } catch (e) {
+    console.error('getEstadoContratosCounts error', e);
+    return { activos: 0, vencidos: 0, pendientes: 0 };
+  }
+}
+
+// Clientes activos vs inactivos: considera activo si tiene al menos 1 contrato con estado activo
+export async function getClientesActivosInactivos() {
+  try {
+    const clientesSnap = await getDocs(collection(db, 'Cliente'));
+    const contratosSnap = await getDocs(collection(db, 'Contrato'));
+
+    const totalClientes = clientesSnap.size;
+    const clientesConContratoActivo = new Set();
+
+    contratosSnap.docs.forEach(d => {
+      const raw = d.data();
+      const estado = (raw.Estado || raw.estado || '').toString().toLowerCase();
+      if (estado.includes('vig') || estado.includes('activo')) {
+        const clientId = raw.ClienteId || raw.Cliente || raw.Cliente_id || raw.ClienteID || null;
+        if (clientId) clientesConContratoActivo.add(clientId.toString());
+      }
+    });
+
+    const activos = clientesConContratoActivo.size;
+    const inactivos = Math.max(0, totalClientes - activos);
+    return { activos, inactivos };
+  } catch (e) {
+    console.error('getClientesActivosInactivos error', e);
+    return { activos: 0, inactivos: 0 };
+  }
+}
+
+// Pagos para scatter: devuelve [{ x: timestamp, y: amount, client: 'id or name' }, ...]
+export async function getPagosScatter(limit = 200) {
+  try {
+    const snap = await getDocs(collection(db, 'Factura'));
+    const arr = [];
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha) || toDate(raw.fecha) || toDate(raw.Fecha_Pago) || toDate(raw.createdAt);
+      if (!fecha) return;
+      const monto = Number(raw.Monto_Decimal ?? raw.monto ?? raw.Monto ?? raw.MontoDecimal ?? 0) || 0;
+      const client = raw.ClienteId || raw.Cliente || raw.ClienteNombre || raw.ClienteNombre || null;
+      arr.push({ x: fecha.getTime(), y: monto, client: client ? client.toString() : null });
+    });
+    // ordenar por fecha asc
+    arr.sort((a, b) => a.x - b.x);
+    return arr.slice(0, limit);
+  } catch (e) {
+    console.error('getPagosScatter error', e);
+    return [];
+  }
+}
+
+// Ingresos acumulados por mes (array de 12 meses) usando getIngresosMensuales
+export async function getIngresosAcumulados(year) {
+  try {
+    const monthly = await getIngresosMensuales(year);
+    let acc = 0;
+    return monthly.map(m => {
+      acc += Number(m.amount || 0);
+      return { month: m.month, amount: acc };
+    });
+  } catch (e) {
+    console.error('getIngresosAcumulados error', e);
+    return [];
+  }
+}
+
+// Métricas aproximadas por agente para radar: normaliza 0..1
+export async function getAgentMetricsRadar(year) {
+  try {
+    const cobros = await getCobrosPorAgente(year);
+    if (!cobros || !cobros.length) return [];
+
+    // métricas simples: numero de cobros (normalizado), total (normalizado)
+    const counts = cobros.map(c => ({ agent: c.agent, total: c.total }));
+    const maxTotal = Math.max(...counts.map(c => c.total || 0), 1);
+
+    return counts.map(c => ({
+      name: c.agent,
+      metrics: [
+        Math.min(1, (c.total || 0) / maxTotal), // eficiencia (por total relativo)
+        Math.min(1, (c.total || 0) / maxTotal), // puntualidad (duplicado por falta de datos reales)
+        Math.min(1, (c.total || 0) / maxTotal), // numero de cobros
+        Math.min(1, (c.total || 0) / maxTotal), // satisfaccion (aprox)
+      ]
+    }));
+  } catch (e) {
+    console.error('getAgentMetricsRadar error', e);
+    return [];
+  }
+}
+
+// Costos y presupuesto: intenta leer colección 'Costos' si existe, sino retorna un ejemplo
+export async function getCostsBreakdown() {
+  try {
+    const snap = await getDocs(collection(db, 'Costos'));
+    if (!snap || snap.empty) {
+      // ejemplo
+      return { labels: ['Desarrollo','Pruebas','Hosting','Infra'], values: [12000, 3000, 4000, 6000] };
+    }
+    const labels = [];
+    const values = [];
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      labels.push(raw.categoria || raw.nombre || d.id);
+      values.push(Number(raw.monto || raw.valor || raw.cantidad || 0));
+    });
+    return { labels, values };
+  } catch (e) {
+    console.error('getCostsBreakdown error', e);
+    return { labels: ['Desarrollo','Pruebas','Hosting','Infra'], values: [12000,3000,4000,6000] };
+  }
+}
