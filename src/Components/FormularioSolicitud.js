@@ -30,8 +30,12 @@ export default function FormularioSolicitud({ onSubmitted }) {
 
   const validar = () => {
     if (!nombre.trim()) return 'Ingrese su nombre completo.';
+    const cedulaRegex = /^\d{3}-\d{6}-\d{4}[A-Za-z]$/;
     if (!cedula.trim()) return 'Ingrese su cédula.';
+    if (!cedulaRegex.test(cedula.trim())) return 'Cédula inválida. Formato esperado: 121-261204-1001F';
     if (!telefono.trim()) return 'Ingrese su número de teléfono.';
+    const telefonoDigits = telefono.replace(/[^0-9]/g, '');
+    if (!telefonoDigits || telefonoDigits.length < 6) return 'Teléfono inválido. Ingrese sólo números.';
     return null;
   };
 
@@ -45,10 +49,11 @@ export default function FormularioSolicitud({ onSubmitted }) {
       try { const raw = await AsyncStorage.getItem('@app_user'); if (raw) user = JSON.parse(raw); } catch(e){}
       const guestId = await AsyncStorage.getItem('@guest_id');
 
+      const telefonoDigits = telefono.replace(/[^0-9]/g, '');
       const payload = {
         nombre: nombre.trim(),
         cedula: cedula.trim(),
-        telefono: telefono.trim(),
+        telefono: telefonoDigits,
         comentario: comentario.trim() || null,
         estado: 'Pendiente',
         // store creator as user id when available

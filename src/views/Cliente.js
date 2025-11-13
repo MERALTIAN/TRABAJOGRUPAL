@@ -101,7 +101,7 @@ const Cliente = () => {
         <SafeModal visible={userModalVisible} transparent animationType="slide" onRequestClose={() => { setUserModalVisible(false); setSelectedClientRecord(null); }}>
           <View style={{ padding: 12 }}>
             <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Usuarios (rol: Cliente)</Text>
-            <UserRoleList role="Cliente" onSelect={(u) => { assignUserToClient(u); }} />
+            <UserRoleList role="Cliente" searchable={true} onSelect={(u) => { assignUserToClient(u); }} />
             <TouchableOpacity onPress={() => { setUserModalVisible(false); setSelectedClientRecord(null); }} style={{ marginTop: 12, alignSelf: 'flex-end' }}><Text>Cerrar</Text></TouchableOpacity>
           </View>
         </SafeModal>

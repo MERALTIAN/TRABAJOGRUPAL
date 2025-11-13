@@ -7,6 +7,7 @@ import { collection, getDocs, query } from "firebase/firestore";
 const Login = ({ onLogin, onGuestLogin }) => {
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [rol, setRol] = useState("Cliente");
   const [roleDropdownVisible, setRoleDropdownVisible] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -45,7 +46,12 @@ const Login = ({ onLogin, onGuestLogin }) => {
 
       <View style={styles.formCard}>
         <TextInput style={styles.input} placeholder="Usuario" value={usuario} onChangeText={setUsuario} />
-        <TextInput style={styles.input} placeholder="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry />
+        <View style={{ position: 'relative' }}>
+          <TextInput style={styles.input} placeholder="Contraseña" value={contrasena} onChangeText={setContrasena} secureTextEntry={!showPassword} />
+          <TouchableOpacity onPress={() => setShowPassword(s => !s)} style={styles.showPwdBtn}>
+            <Text style={{ color: '#0b60d9', fontWeight: '700' }}>{showPassword ? 'Ocultar' : 'Mostrar'}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ marginBottom: 18 }}>
           <Text style={styles.roleLabel}>Tipo de Usuario</Text>
@@ -227,6 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6c757d',
     marginTop: 15,
   },
+  showPwdBtn: { position: 'absolute', right: 14, top: 12 },
 });
 
 // role selector UI is implemented as pill buttons above

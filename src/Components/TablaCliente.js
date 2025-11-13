@@ -10,7 +10,26 @@ const TablaCliente = ({ clientes, eliminarCliente, editarCliente, onSelectClient
         {clientes.length === 0 ? (
           <Text style={{ color: '#666', padding: 8 }}>No hay clientes registrados.</Text>
         ) : (
-          clientsWrapper(clientes, eliminarCliente, editarCliente, onSelectCliente)
+          <View style={{ paddingBottom: 20 }}>
+            {clientes.map((cliente) => (
+              <View key={cliente.id} style={styles.card}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View>
+                    <Text style={styles.name}>{(cliente.Nombre || '') + ' ' + (cliente.Apellido || '')}</Text>
+                    <Text style={styles.meta}>Cédula: {cliente.Cedula || '-'}</Text>
+                    <Text style={styles.meta}>Dirección: {cliente.Direccion || '-'}</Text>
+                    <Text style={styles.meta}>Teléfono: {cliente.Telefono || '-'}</Text>
+                    <Text style={styles.meta}>Usuario: {cliente.UsuarioNombre || cliente.Usuario || (cliente.UsuarioId ? cliente.UsuarioId : 'No vinculado')}</Text>
+                  </View>
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity style={styles.editButton} onPress={() => editarCliente(cliente)}><Text style={styles.buttonText}>🖋️</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarCliente(cliente.id)}><Text style={styles.buttonText}>🗑️</Text></TouchableOpacity>
+                    <TouchableOpacity style={styles.linkButton} onPress={() => onSelectCliente && onSelectCliente(cliente)}><Text style={{ color: '#0b60d9', fontWeight: '700' }}>{cliente.UsuarioId ? 'Vinculado' : 'Vincular'}</Text></TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
@@ -61,14 +80,13 @@ const clientsWrapper = (clientes, eliminarCliente, editarCliente, onSelectClient
 const styles = StyleSheet.create({
   container: { padding: 10 },
   titulo: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  header: { flexDirection: "row", backgroundColor: "#f0f0f0", padding: 10 },
-  headerText: { width: 100, fontWeight: "bold", textAlign: "center" },
-  row: { flexDirection: "row", padding: 10, borderBottomWidth: 1, borderBottomColor: "#ccc", alignItems: "center" },
-  cell: { width: 100, textAlign: "center" },
-  linkCell: { width: 100, textAlign: "center" },
-  actionButtons: { flexDirection: "row", width: 100, justifyContent: "space-around" },
-  editButton: { backgroundColor: "#007bff", padding: 8, borderRadius: 5, width: 35, alignItems: "center" },
-  deleteButton: { backgroundColor: "#ff4444", padding: 8, borderRadius: 5, width: 35, alignItems: "center" },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6, elevation: 3 },
+  name: { fontSize: 16, fontWeight: '800', marginBottom: 6, color: '#0b60d9' },
+  meta: { color: '#555', marginBottom: 4 },
+  actionButtons: { alignItems: 'flex-end' },
+  editButton: { backgroundColor: '#007bff', padding: 8, borderRadius: 6, width: 40, alignItems: 'center', marginBottom: 6 },
+  deleteButton: { backgroundColor: '#ff4444', padding: 8, borderRadius: 6, width: 40, alignItems: 'center', marginBottom: 6 },
+  linkButton: { paddingVertical: 6, paddingHorizontal: 8 },
   buttonText: { fontSize: 16 },
 });
 

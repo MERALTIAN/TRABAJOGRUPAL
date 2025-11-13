@@ -148,7 +148,15 @@ export default function Catalogo({ user }) {
       };
       const { addDoc, collection } = await import("firebase/firestore");
       await addDoc(collection(db, "Contrato"), payload);
-      alert("Guardado en contrato correctamente");
+      // marcar como usado en el catálogo (usado:true) para preservar historial
+      try {
+        const { updateDoc, doc } = await import('firebase/firestore');
+        const col = tipo === 'servicio' ? 'Servicio' : 'Modelo';
+        await updateDoc(doc(db, col, item.id), { usado: true });
+      } catch (e) {
+        console.error('No se pudo marcar item como usado en el catálogo:', e);
+      }
+      alert("Guardado en contrato correctamente y eliminado del catálogo");
     } catch (err) {
       console.error("Error guardando en contrato", err);
       alert("Error al guardar");

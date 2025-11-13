@@ -7,7 +7,6 @@ import TablaAgenteCobrador from "../Components/TablaAgenteCobrador.js";
 import ModalEditar from "../Components/ModalEditar.js";
 import UserRoleList from '../Components/UserRoleList.js';
 import SafeModal from '../Components/SafeModal.js';
-import AccesoContrato from './AccesoContrato_fixed.js';
 
 const AgenteCobrador = () => {
   const [agentes, setAgentes] = useState([]);
@@ -89,11 +88,7 @@ const AgenteCobrador = () => {
           onSelectAgente={(a) => { setSelectedAgent(a); setUserModalVisible(true); }}
         />
 
-        {/* Embed contract access UI so agents can list and register payments directly */}
-        <View style={{ marginTop: 18 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 8 }}>Contratos (Acceso Agente)</Text>
-          <AccesoContrato />
-        </View>
+        {/* AccesoContrato removed as requested (agent access removed from this view) */}
       </ScrollView>
 
       <ModalEditar
@@ -108,7 +103,7 @@ const AgenteCobrador = () => {
     <SafeModal visible={userModalVisible} transparent animationType="slide" onRequestClose={() => setUserModalVisible(false)}>
       <View style={{ padding: 12 }}>
         <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Usuarios (rol: Agente)</Text>
-        <UserRoleList role="Agente" onSelect={(u) => { 
+        <UserRoleList role="Agente" searchable={true} onSelect={(u) => { 
             if (selectedAgent && selectedAgent.id) {
               assignUserToAgent(u, selectedAgent.id);
               setUserModalVisible(false);

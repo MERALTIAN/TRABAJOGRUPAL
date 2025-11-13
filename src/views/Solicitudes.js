@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { db } from '../database/firebaseconfig.js';
-import { collection, query, onSnapshot, orderBy, updateDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, updateDoc, doc, getDocs, addDoc, serverTimestamp, where } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import FormularioSolicitudAdmin from '../Components/FormularioSolicitudAdmin';
 
@@ -130,11 +131,11 @@ const Solicitudes = () => {
         ) : null}
 
         <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.actionBtn} onPress={() => handleChangeEstado(item.id, 'Aprobada')}>
+          <TouchableOpacity style={styles.actionBtn} onPress={() => handleChangeEstado(item, 'Aprobada')}>
             <MaterialIcons name="check" size={16} color="#fff" />
             <Text style={styles.actionBtnText}>Aprobar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.rejectAction]} onPress={() => handleChangeEstado(item.id, 'Rechazada')}>
+          <TouchableOpacity style={[styles.actionBtn, styles.rejectAction]} onPress={() => handleChangeEstado(item, 'Rechazada')}>
             <MaterialIcons name="close" size={16} color="#fff" />
             <Text style={styles.actionBtnText}>Rechazar</Text>
           </TouchableOpacity>
@@ -143,7 +144,58 @@ const Solicitudes = () => {
     );
   };
 
-  const handleChangeEstado = (id, nuevoEstado) => {
+  const createContractFromSolicitud = async (solicitud) => {
+    try {
+      // try to find existing Cliente by creadoPor (UsuarioId) or by Cedula
+      let clienteId = null;
+      if (solicitud.creadoPor) {
+        const q = query(collection(db, 'Cliente'), where('UsuarioId', '==', solicitud.creadoPor));
+        const snap = await getDocs(q);
+        if (!snap.empty) clienteId = snap.docs[0].id;
+      }
+      if (!clienteId && solicitud.cedula) {
+        const q2 = query(collection(db, 'Cliente'), where('Cedula', '==', solicitud.cedula));
+        const snap2 = await getDocs(q2);
+        if (!snap2.empty) clienteId = snap2.docs[0].id;
+      }
+
+      // If no cliente found, create one using solicitud data
+      if (!clienteId) {
+        const payloadCliente = {
+          Nombre: solicitud.nombre || 'Sin nombre',
+          Apellido: '',
+          Cedula: solicitud.cedula || null,
+          Telefono: solicitud.telefono || null,
+        };
+        const ref = await addDoc(collection(db, 'Cliente'), payloadCliente);
+        clienteId = ref.id;
+      }
+
+      // create contract linked to clienteId
+      const contratoPayload = {
+        ClienteId: clienteId,
+        Monto: 0,
+        Estado: 'Aprobada',
+        Fecha_Inicio: new Date().toISOString().slice(0,10),
+        Fecha_Fin: null,
+        Comentario: solicitud.comentario || null,
+        CuotaMonto: 0,
+        Cuotas: 0,
+        CuotasRestantes: 0,
+        creadoDesdeSolicitud: solicitud.id || null,
+        fechaCreacion: serverTimestamp(),
+      };
+  const ref = await addDoc(collection(db, 'Contrato'), contratoPayload);
+  // store last created contract id so Contrato view can open it
+  try { await AsyncStorage.setItem('@last_created_contract', ref.id); } catch (e) { console.error('No se pudo guardar last_created_contract', e); }
+  return true;
+    } catch (e) {
+      console.error('Error creando contrato desde solicitud:', e);
+      return false;
+    }
+  };
+
+  const handleChangeEstado = (item, nuevoEstado) => {
     Alert.alert(
       `${nuevoEstado} solicitud`,
       `¿Seguro que deseas marcar esta solicitud como "${nuevoEstado}"?`,
@@ -153,7 +205,13 @@ const Solicitudes = () => {
           text: 'Sí',
           onPress: async () => {
             try {
-              await updateDoc(doc(db, 'solicitudes_contrato', id), { estado: nuevoEstado });
+              await updateDoc(doc(db, 'solicitudes_contrato', item.id), { estado: nuevoEstado });
+              // if approved, create a contract automatically
+              if (nuevoEstado.toString().toLowerCase() === 'aprobada' || nuevoEstado.toString().toLowerCase() === 'aprobado') {
+                const ok = await createContractFromSolicitud({ ...item, id: item.id });
+                if (ok) Alert.alert('Contrato creado', 'Se creó un contrato a partir de la solicitud.');
+                else Alert.alert('Advertencia', 'Solicitud marcada como aprobada pero no se pudo crear el contrato automáticamente.');
+              }
             } catch (err) {
               console.error('Error al actualizar estado:', err);
               Alert.alert('Error', 'No se pudo actualizar el estado.');

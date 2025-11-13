@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from "react-nati
 import SafeModal from '../Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, query, where, getDoc } from "firebase/firestore";
 import FormularioContrato from "../Components/FormularioContrato.js";
 import TablaContrato from "../Components/TablaContrato.js";
 import ModalEditar from "../Components/ModalEditar.js";
@@ -117,7 +117,35 @@ const Contrato = () => {
   ];
 
   useEffect(() => {
-    cargarDatos();
+    const init = async () => {
+      await cargarDatos();
+      try {
+        const last = await AsyncStorage.getItem('@last_created_contract');
+        if (last) {
+          // try to find it in current contratos
+          const found = contratos.find(c => c.id === last);
+          if (found) {
+            setContratoEditar(found);
+            setModalVisible(true);
+          } else {
+            // fetch directly
+            try {
+              const ref = doc(db, 'Contrato', last);
+              const snap = await getDoc(ref);
+              if (snap && snap.exists()) {
+                setContratoEditar({ id: snap.id, ...snap.data() });
+                setModalVisible(true);
+              }
+            } catch (e) { console.error('No se pudo obtener contrato creado:', e); }
+          }
+          // remove the flag
+          await AsyncStorage.removeItem('@last_created_contract');
+        }
+      } catch (e) {
+        console.error('Error leyendo last_created_contract', e);
+      }
+    };
+    init();
   }, []);
 
   const verClientes = async (contrato) => {

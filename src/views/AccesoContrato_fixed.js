@@ -225,13 +225,24 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
     }
   };
 
+  const formatMoney = (v) => {
+    const n = Number(v || 0);
+    return `C$ ${n.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  };
+
   const renderContractCard = ({ item }) => (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>Contrato: {formatField(item.id)}</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={styles.cardTitle}>Contrato: {formatField(item.id)}</Text>
+        <Text style={[styles.statePill, item.Estado && item.Estado.toLowerCase().includes('pag') ? { backgroundColor: '#e6f7ee', color: '#0b8043' } : {}]}>{item.Estado || 'Pendiente'}</Text>
+      </View>
+
       <Text style={styles.rowText}>Cliente: {formatField(item.Cliente || item.ClienteId || item.ClienteID)}</Text>
-      <Text style={styles.rowText}>Cuotas: {formatField(item.Cuotas)}</Text>
-      <Text style={styles.rowText}>Monto: {formatField(item.Monto)}</Text>
-      <View style={{ flexDirection: 'row', marginTop: 8 }}>
+      <Text style={styles.rowText}>Periodo: {formatField(item.Fecha_Inicio || '')} — {formatField(item.Fecha_Fin || '')}</Text>
+      <Text style={styles.rowText}>Cuotas totales: {formatField(item.Cuotas)} — Restantes: {formatField(item.CuotasRestantes ?? item.Cuotas)}</Text>
+      <Text style={[styles.rowText, { fontWeight: '800', marginTop: 6 }]}>Monto actual: {formatMoney(item.Monto)}</Text>
+
+      <View style={{ flexDirection: 'row', marginTop: 10 }}>
         <TouchableOpacity style={styles.detailBtn} onPress={() => { setSelectedContract(item); loadPaymentsFor(item.id); }}>
           <Text style={styles.detailBtnText}>Detalles</Text>
         </TouchableOpacity>
@@ -339,6 +350,7 @@ const styles = StyleSheet.create({
   noResults: { color: '#666' },
   card: { padding: 14, borderWidth: 0, borderRadius: 10, marginBottom: 12, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
   cardTitle: { fontWeight: '800', marginBottom: 6, color: '#12323b' },
+  statePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: '#fff6ee', color: '#b36b00', fontWeight: '700' },
   rowText: { color: '#333', marginBottom: 6 },
   headerSubtitle: { color: '#666', marginBottom: 8 },
   roleToggle: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#f4f6f8' },
