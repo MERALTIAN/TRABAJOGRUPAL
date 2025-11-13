@@ -1,80 +1,42 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from "react-native";
 
-const TablaCliente = ({ clientes, eliminarCliente, editarCliente, onSelectCliente, desvincularUsuario }) => {
+const TablaCliente = ({ clientes = [], eliminarCliente, editarCliente, onSelectCliente, desvincularUsuario }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Lista de Clientes</Text>
 
-      <ScrollView>
-        {clientes.length === 0 ? (
-          <Text style={{ color: '#666', padding: 8 }}>No hay clientes registrados.</Text>
-        ) : (
-          <View style={{ paddingBottom: 20 }}>
-            {clientes.map((cliente) => (
-              <View key={cliente.id} style={styles.card}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View>
-                    <Text style={styles.name}>{(cliente.Nombre || '') + ' ' + (cliente.Apellido || '')}</Text>
-                    <Text style={styles.meta}>Cédula: {cliente.Cedula || '-'}</Text>
-                    <Text style={styles.meta}>Dirección: {cliente.Direccion || '-'}</Text>
-                    <Text style={styles.meta}>Teléfono: {cliente.Telefono || '-'}</Text>
-                    <Text style={styles.meta}>Usuario: {cliente.UsuarioNombre || cliente.Usuario || (cliente.UsuarioId ? cliente.UsuarioId : 'No vinculado')}</Text>
-                  </View>
-                  <View style={styles.actionButtons}>
-                    <TouchableOpacity style={styles.editButton} onPress={() => editarCliente(cliente)}><Text style={styles.buttonText}>🖋️</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarCliente(cliente.id)}><Text style={styles.buttonText}>🗑️</Text></TouchableOpacity>
-                  </View>
+      {clientes.length === 0 ? (
+        <Text style={{ color: '#666', padding: 8 }}>No hay clientes registrados.</Text>
+      ) : (
+        <FlatList
+          data={clientes}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item: cliente }) => (
+            <View key={cliente.id} style={styles.card}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={styles.name}>{(cliente.Nombre || '') + ' ' + (cliente.Apellido || '')}</Text>
+                  <Text style={styles.meta}>Cédula: {cliente.Cedula || '-'}</Text>
+                  <Text style={styles.meta}>Dirección: {cliente.Direccion || '-'}</Text>
+                  <Text style={styles.meta}>Teléfono: {cliente.Telefono || '-'}</Text>
+                  <Text style={styles.meta}>Usuario: {cliente.UsuarioNombre || cliente.Usuario || (cliente.UsuarioId ? cliente.UsuarioId : 'No vinculado')}</Text>
+                </View>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity style={styles.editButton} onPress={() => editarCliente(cliente)}><Text style={styles.buttonText}>🖋️</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarCliente(cliente.id)}><Text style={styles.buttonText}>🗑️</Text></TouchableOpacity>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+            </View>
+          )}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        />
+      )}
     </View>
   );
 };
-
-const clientsWrapper = (clientes, eliminarCliente, editarCliente, onSelectCliente) => (
-  <View>
-    <View style={styles.header}>
-      <Text style={styles.headerText}>Apellido</Text>
-      <Text style={styles.headerText}>Cédula</Text>
-      <Text style={styles.headerText}>Dirección</Text>
-      <Text style={styles.headerText}>Nombre</Text>
-      <Text style={styles.headerText}>Teléfono</Text>
-      <Text style={styles.headerText}>Usuario</Text>
-      <Text style={styles.headerText}>Acciones</Text>
-    </View>
-
-    {clientes.map((cliente) => (
-      <View key={cliente.id} style={styles.row}>
-        <Text style={styles.cell}>{cliente.Apellido}</Text>
-        <Text style={styles.cell}>{cliente.Cedula}</Text>
-        <Text style={styles.cell}>{cliente.Direccion}</Text>
-        <Text style={styles.cell}>{cliente.Nombre}</Text>
-        <Text style={styles.cell}>{cliente.Telefono}</Text>
-        <TouchableOpacity style={[styles.cell, styles.linkCell]} onPress={() => onSelectCliente && onSelectCliente(cliente)}>
-          <Text style={{ color: cliente.UsuarioId ? '#0b60d9' : '#666', fontWeight: cliente.UsuarioId ? '700' : '600' }}>{cliente.UsuarioId ? (cliente.UsuarioNombre || cliente.Usuario || cliente.UsuarioId) : 'Vincular'}</Text>
-        </TouchableOpacity>
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => editarCliente(cliente)}
-          >
-            <Text style={styles.buttonText}>🖋️</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => eliminarCliente(cliente.id)}
-          >
-            <Text style={styles.buttonText}>🗑️</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    ))}
-  </View>
-);
 
 const styles = StyleSheet.create({
   container: { padding: 10 },

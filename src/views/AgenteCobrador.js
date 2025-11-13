@@ -84,7 +84,7 @@ const AgenteCobrador = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <View>
         <FormularioAgenteCobrador cargarDatos={cargarDatos} />
         <TablaAgenteCobrador 
           agentes={agentes} 
@@ -121,7 +121,7 @@ const AgenteCobrador = () => {
         />
 
         {/* AccesoContrato removed as requested (agent access removed from this view) */}
-      </ScrollView>
+      </View>
 
       <ModalEditar
         visible={modalVisible}

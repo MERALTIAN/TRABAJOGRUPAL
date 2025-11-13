@@ -1,15 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 
 const TablaAgenteCobrador = ({ agentes = [], eliminarAgenteCobrador, editarAgenteCobrador, onSelectAgente, desvincularUsuario }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Agentes Cobradores</Text>
-      <ScrollView>
-        {agentes.length === 0 ? (
-          <Text style={{ color: '#666', padding: 8 }}>No hay agentes registrados.</Text>
-          ) : (
-          agentes.map(a => (
+      {agentes.length === 0 ? (
+        <Text style={{ color: '#666', padding: 8 }}>No hay agentes registrados.</Text>
+      ) : (
+        <FlatList
+          data={agentes}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item: a }) => (
             <View key={a.id} style={styles.card}>
               <TouchableOpacity style={{ flex: 1 }} onPress={() => onSelectAgente && onSelectAgente(a)}>
                 <Text style={styles.name}>{a.Nombre || a.Usuario || a.id}</Text>
@@ -20,9 +23,11 @@ const TablaAgenteCobrador = ({ agentes = [], eliminarAgenteCobrador, editarAgent
                 <TouchableOpacity style={styles.delBtn} onPress={() => eliminarAgenteCobrador && eliminarAgenteCobrador(a.id)}><Text style={styles.btnText}>🗑️</Text></TouchableOpacity>
               </View>
             </View>
-          ))
-        )}
-      </ScrollView>
+          )}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        />
+      )}
     </View>
   );
 };

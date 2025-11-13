@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 
 const TablaContrato = ({ contratos = [], eliminarContrato = () => {}, editarContrato = () => {}, verClientes = () => {}, currentUser = null }) => {
   return (
@@ -8,8 +8,11 @@ const TablaContrato = ({ contratos = [], eliminarContrato = () => {}, editarCont
       {contratos.length === 0 ? (
         <Text style={styles.empty}>No hay contratos registrados.</Text>
       ) : (
-        <ScrollView>
-          {contratos.map((c) => {
+        <FlatList
+          data={contratos}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          renderItem={({ item: c }) => {
             const displayClient = c.Cliente || c.ClienteNombre || c.ClienteId || '-';
             const status = (c.Estado || c.estado || 'Pendiente').toString();
             const date = c.Fecha_Inicio || c.FechaInicio || c.createdAt || '';
@@ -51,8 +54,10 @@ const TablaContrato = ({ contratos = [], eliminarContrato = () => {}, editarCont
               </View>
             </View>
             );
-          })}
-        </ScrollView>
+          }}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        />
       )}
     </View>
   );

@@ -115,7 +115,7 @@ const Cliente = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <View>
         <FormularioCliente cargarDatos={cargarDatos} />
         <TablaCliente 
           clientes={clientes} 
@@ -133,8 +133,7 @@ const Cliente = () => {
             <TouchableOpacity onPress={() => { setUserModalVisible(false); setSelectedClientRecord(null); }} style={{ marginTop: 12, alignSelf: 'flex-end' }}><Text>Cerrar</Text></TouchableOpacity>
           </View>
         </SafeModal>
-      </ScrollView>
-
+      </View>
       <ModalEditar
         visible={modalVisible}
         onClose={cerrarModal}

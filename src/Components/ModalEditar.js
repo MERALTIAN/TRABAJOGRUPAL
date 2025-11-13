@@ -6,7 +6,7 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Modal, 
-  ScrollView,
+  FlatList,
   Image,
   Alert 
 } from "react-native";
@@ -180,9 +180,14 @@ const ModalEditar = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
-            {fields.map(field => renderField(field))}
-          </ScrollView>
+          <FlatList
+            style={styles.modalContent}
+            data={fields}
+            keyExtractor={(f) => f.key || f.label || String(Math.random())}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+            renderItem={({ item }) => renderField(item)}
+          />
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>

@@ -38,10 +38,10 @@ const Usuario = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <View>
         <FormularioUsuario cargarDatos={cargarDatos} />
         <TablaUsuario usuarios={usuarios} eliminarUsuario={eliminarUsuario} />
-      </ScrollView>
+      </View>
     </View>
   );
 };

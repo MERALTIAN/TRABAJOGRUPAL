@@ -1,30 +1,38 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 
 const TablaUsuario = ({ usuarios = [], eliminarUsuario = () => {}, editarUsuario = () => {} }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Lista de Usuarios</Text>
-      <ScrollView style={styles.list}>
-        {usuarios.length === 0 && <Text style={styles.empty}>No hay usuarios registrados.</Text>}
-        {usuarios.map((u) => (
-          <View key={u.id} style={styles.row}>
-            <View style={styles.info}>
-              <Text style={styles.name}>{u.Nombre ? `${u.Nombre} ${u.Apellido || ''}`.trim() : (u.email || u.id)}</Text>
-              <Text style={styles.meta}>Rol: {u.rol || u.Rol || 'N/A'}</Text>
-              {u.Telefono ? <Text style={styles.meta}>Tel: {u.Telefono}</Text> : null}
+      {usuarios.length === 0 ? (
+        <Text style={styles.empty}>No hay usuarios registrados.</Text>
+      ) : (
+        <FlatList
+          data={usuarios}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          renderItem={({ item: u }) => (
+            <View key={u.id} style={styles.row}>
+              <View style={styles.info}>
+                <Text style={styles.name}>{u.Nombre ? `${u.Nombre} ${u.Apellido || ''}`.trim() : (u.email || u.id)}</Text>
+                <Text style={styles.meta}>Rol: {u.rol || u.Rol || 'N/A'}</Text>
+                {u.Telefono ? <Text style={styles.meta}>Tel: {u.Telefono}</Text> : null}
+              </View>
+              <View style={styles.actions}>
+                <TouchableOpacity style={[styles.btn, styles.edit]} onPress={() => editarUsuario(u)}>
+                  <Text style={styles.btnText}>Editar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => eliminarUsuario(u.id)}>
+                  <Text style={styles.btnText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.actions}>
-              <TouchableOpacity style={[styles.btn, styles.edit]} onPress={() => editarUsuario(u)}>
-                <Text style={styles.btnText}>Editar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, styles.delete]} onPress={() => eliminarUsuario(u.id)}>
-                <Text style={styles.btnText}>Eliminar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+          )}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+        />
+      )}
     </View>
   );
 };
