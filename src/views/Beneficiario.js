@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioBeneficiario from "../Components/FormularioBeneficiario.js";
 import TablaBeneficiario from "../Components/TablaBeneficiario.js";
 import ModalEditar from "../Components/ModalEditar.js";
@@ -26,7 +27,8 @@ const Beneficiario = () => {
 
   const eliminarBeneficiario = async (id) => {
     try {
-      await deleteDoc(doc(db, "Beneficiario", id));
+      if (!id) { console.warn('Beneficiario.eliminarBeneficiario: id faltante', id); return; }
+      await safeDeleteDoc('Beneficiario', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -70,7 +72,7 @@ const Beneficiario = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={beneficiarioEditar}
-        collectionName="Beneficiario"
+        collection={"Beneficiario"}
         fields={beneficiarioFields}
         onUpdate={cargarDatos}
         title="Editar Beneficiario"

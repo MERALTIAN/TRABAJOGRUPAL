@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { db } from '../database/firebaseconfig.js';
-import { collection, query, onSnapshot, orderBy, updateDoc, doc, getDocs, addDoc, serverTimestamp, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, getDocs, addDoc, serverTimestamp, where } from 'firebase/firestore';
+import { safeUpdateDoc } from '../utils/firestoreUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import FormularioSolicitudAdmin from '../Components/FormularioSolicitudAdmin';
@@ -205,7 +206,20 @@ const Solicitudes = () => {
           text: 'Sí',
           onPress: async () => {
             try {
-              await updateDoc(doc(db, 'solicitudes_contrato', item.id), { estado: nuevoEstado });
+              // Validar que tenemos el id de la solicitud antes de llamar a Firestore
+              if (!item || !item.id) {
+                console.warn('Solicitudes.handleChangeEstado: item o item.id faltante', item);
+                Alert.alert('Error', 'ID de la solicitud no disponible. Operación cancelada.');
+                return;
+              }
+
+              try {
+                await safeUpdateDoc('solicitudes_contrato', item.id, { estado: nuevoEstado });
+              } catch (errU) {
+                console.error('Error actualizando estado con safeUpdateDoc:', errU);
+                Alert.alert('Error', 'No se pudo actualizar el estado.');
+                return;
+              }
               // if approved, create a contract automatically
               if (nuevoEstado.toString().toLowerCase() === 'aprobada' || nuevoEstado.toString().toLowerCase() === 'aprobado') {
                 const ok = await createContractFromSolicitud({ ...item, id: item.id });
@@ -233,6 +247,8 @@ const Solicitudes = () => {
       keyExtractor={item => item.id}
       style={styles.list}
       contentContainerStyle={{ padding: 10 }}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
       ListEmptyComponent={<Text style={styles.emptyText}>🎉 ¡Todo al día! No hay solicitudes pendientes.</Text>}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#007bff"]} />

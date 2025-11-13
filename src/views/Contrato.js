@@ -3,7 +3,8 @@ import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from "react-nati
 import SafeModal from '../Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc, query, where, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { safeDeleteDoc, safeGetDoc } from '../utils/firestoreUtils';
 import FormularioContrato from "../Components/FormularioContrato.js";
 import TablaContrato from "../Components/TablaContrato.js";
 import ModalEditar from "../Components/ModalEditar.js";
@@ -88,7 +89,15 @@ const Contrato = () => {
 
   const eliminarContrato = async (id) => {
     try {
-      await deleteDoc(doc(db, "Contrato", id));
+      if (!id) {
+        console.warn('Contrato.eliminarContrato: id faltante', id);
+        return;
+      }
+      try {
+        await safeDeleteDoc('Contrato', id);
+      } catch (e) {
+        console.error('Contrato.eliminarContrato safeDeleteDoc error', e);
+      }
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -128,10 +137,9 @@ const Contrato = () => {
             setContratoEditar(found);
             setModalVisible(true);
           } else {
-            // fetch directly
+            // fetch directly using safe helper
             try {
-              const ref = doc(db, 'Contrato', last);
-              const snap = await getDoc(ref);
+              const snap = await safeGetDoc('Contrato', last);
               if (snap && snap.exists()) {
                 setContratoEditar({ id: snap.id, ...snap.data() });
                 setModalVisible(true);
@@ -200,7 +208,7 @@ const Contrato = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={contratoEditar}
-        collectionName="Contrato"
+        collection={"Contrato"}
         fields={contratoFields}
         onUpdate={cargarDatos}
         title="Editar Contrato"

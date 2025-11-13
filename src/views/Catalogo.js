@@ -5,18 +5,15 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  FlatList,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  Pressable,
-  useWindowDimensions,
   ScrollView,
+  FlatList,
+  useWindowDimensions,
 } from "react-native";
 import SafeModal from '../Components/SafeModal';
 import formatField from '../utils/formatField';
 import { db } from "../database/firebaseconfig.js";
 import { collection, onSnapshot, getDocs } from "firebase/firestore";
+import { safeUpdateDoc } from '../utils/firestoreUtils';
 
 /**
  * Cambio visual completo (manteniendo la lógica):
@@ -150,9 +147,8 @@ export default function Catalogo({ user }) {
       await addDoc(collection(db, "Contrato"), payload);
       // marcar como usado en el catálogo (usado:true) para preservar historial
       try {
-        const { updateDoc, doc } = await import('firebase/firestore');
         const col = tipo === 'servicio' ? 'Servicio' : 'Modelo';
-        await updateDoc(doc(db, col, item.id), { usado: true });
+        await safeUpdateDoc(col, item.id, { usado: true });
       } catch (e) {
         console.error('No se pudo marcar item como usado en el catálogo:', e);
       }
@@ -286,6 +282,8 @@ export default function Catalogo({ user }) {
           )}
           keyExtractor={(it) => it.id}
           contentContainerStyle={styles.listContainer}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
         />
       ) : (
         <View style={styles.empty}>

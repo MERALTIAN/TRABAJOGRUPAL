@@ -4,7 +4,8 @@ import SafeModal from '../Components/SafeModal';
 import FormularioSolicitud from '../Components/FormularioSolicitud.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../database/firebaseconfig.js';
-import { collection, query, orderBy, onSnapshot, where, doc, updateDoc, serverTimestamp, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where, serverTimestamp, getDocs } from 'firebase/firestore';
+import { safeUpdateDoc, safeDeleteDoc } from '../utils/firestoreUtils';
 
 const SolicitarContrato = () => {
   const [solicitudes, setSolicitudes] = useState([]);
@@ -150,8 +151,11 @@ const SolicitarContrato = () => {
     // Allow edits without email confirmation (email removed from this view)
 
     try {
-      const ref = doc(db, 'solicitudes_contrato', editingItem.id);
-      await updateDoc(ref, {
+      if (!editingItem || !editingItem.id) {
+        Alert.alert('Error', 'ID de la solicitud no disponible.');
+        return;
+      }
+      await safeUpdateDoc('solicitudes_contrato', editingItem.id, {
         comentario: editComentario || null,
         telefono: editTelefono || null,
         updatedAt: serverTimestamp()
@@ -173,7 +177,11 @@ const SolicitarContrato = () => {
   const confirmCancel = async () => {
     if (!confirmItem) return;
     try {
-      await deleteDoc(doc(db, 'solicitudes_contrato', confirmItem.id));
+      if (!confirmItem || !confirmItem.id) {
+        Alert.alert('Error', 'ID de la solicitud no disponible.');
+        return;
+      }
+      await safeDeleteDoc('solicitudes_contrato', confirmItem.id);
       setConfirmModalVisible(false);
       setConfirmItem(null);
       Alert.alert('Hecho', 'Solicitud eliminada');
@@ -189,6 +197,8 @@ const SolicitarContrato = () => {
       ref={listRef}
       data={solicitudes}
       keyExtractor={(item) => item.id}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <>
           <View style={styles.headerContainer}>

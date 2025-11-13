@@ -1,5 +1,6 @@
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../database/firebaseconfig.js';
+import { safeGetDoc } from '../utils/firestoreUtils';
 
 function toDate(value) {
   if (!value) return null;
@@ -49,8 +50,8 @@ export async function getDistribucionServicios() {
       // Si serviceName parece ser un id, intentar obtener el documento de Servicio
       if (serviceName && typeof serviceName === 'string' && serviceName.length === 20) {
         try {
-          const sdoc = await getDoc(doc(db, 'Servicio', serviceName));
-          if (sdoc.exists()) {
+          const sdoc = await safeGetDoc('Servicio', serviceName);
+          if (sdoc && sdoc.exists()) {
             const sraw = sdoc.data();
             serviceName = sraw.nombre || sraw.Nombre || sraw.name || serviceName;
           }

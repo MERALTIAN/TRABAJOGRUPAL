@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 
-const TablaCliente = ({ clientes, eliminarCliente, editarCliente, onSelectCliente }) => {
+const TablaCliente = ({ clientes, eliminarCliente, editarCliente, onSelectCliente, desvincularUsuario }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Lista de Clientes</Text>
@@ -24,7 +24,6 @@ const TablaCliente = ({ clientes, eliminarCliente, editarCliente, onSelectClient
                   <View style={styles.actionButtons}>
                     <TouchableOpacity style={styles.editButton} onPress={() => editarCliente(cliente)}><Text style={styles.buttonText}>🖋️</Text></TouchableOpacity>
                     <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarCliente(cliente.id)}><Text style={styles.buttonText}>🗑️</Text></TouchableOpacity>
-                    <TouchableOpacity style={styles.linkButton} onPress={() => onSelectCliente && onSelectCliente(cliente)}><Text style={{ color: '#0b60d9', fontWeight: '700' }}>{cliente.UsuarioId ? 'Vinculado' : 'Vincular'}</Text></TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -88,6 +87,8 @@ const styles = StyleSheet.create({
   deleteButton: { backgroundColor: '#ff4444', padding: 8, borderRadius: 6, width: 40, alignItems: 'center', marginBottom: 6 },
   linkButton: { paddingVertical: 6, paddingHorizontal: 8 },
   buttonText: { fontSize: 16 },
+  vinculadoPill: { backgroundColor: '#e6f7ff', color: '#0b60d9', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 6, fontWeight: '700', marginBottom: 6 },
+  unlinkButton: { marginTop: 2 },
 });
 
 export default TablaCliente;

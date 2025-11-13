@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioModelo from "../Components/FormularioModelo.js";
 import TablaModelo from "../Components/TablaModelo.js";
 import ModalEditar from "../Components/ModalEditar.js";
@@ -26,7 +27,8 @@ const Modelo = () => {
 
   const eliminarModelo = async (id) => {
     try {
-      await deleteDoc(doc(db, "Modelo", id));
+      if (!id) { console.warn('Modelo.eliminarModelo: id faltante', id); return; }
+      await safeDeleteDoc('Modelo', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -78,7 +80,7 @@ const Modelo = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={modeloEditar}
-        collectionName="Modelo"
+        collection={"Modelo"}
         fields={modeloFields}
         onUpdate={cargarDatos}
         title="Editar Modelo"

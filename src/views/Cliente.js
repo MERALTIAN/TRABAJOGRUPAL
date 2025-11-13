@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc, safeUpdateDoc } from '../utils/firestoreUtils';
 import FormularioCliente from "../Components/FormularioCliente.js";
 import TablaCliente from "../Components/TablaCliente.js";
 import UserRoleList from '../Components/UserRoleList.js';
@@ -30,9 +31,35 @@ const Cliente = () => {
     }
   };
 
+  const desvincularUsuario = async (cliente) => {
+    try {
+      if (!cliente || !cliente.id) return;
+      Alert.alert(
+        'Desvincular usuario',
+        `¿Seguro que quieres desvincular el usuario de ${cliente.Nombre || cliente.id}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Desvincular', style: 'destructive', onPress: async () => {
+            try {
+              await safeUpdateDoc('Cliente', cliente.id, { UsuarioId: null, UsuarioNombre: null });
+              await cargarDatos();
+              Alert.alert('Desvinculado', 'Usuario desvinculado correctamente.');
+            } catch (err) {
+              console.error('Error desvinculando usuario del cliente', err);
+              Alert.alert('Error', 'No se pudo desvincular el usuario.');
+            }
+          }}
+        ]
+      );
+    } catch (e) {
+      console.error('Error desvinculando usuario del cliente', e);
+    }
+  };
+
   const eliminarCliente = async (id) => {
     try {
-      await deleteDoc(doc(db, "Cliente", id));
+      if (!id) { console.warn('Cliente.eliminarCliente: id faltante', id); return; }
+      await safeDeleteDoc('Cliente', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -53,7 +80,7 @@ const Cliente = () => {
   const assignUserToClient = async (user) => {
     if (!selectedClientRecord || !selectedClientRecord.id) return;
     try {
-      await updateDoc(doc(db, 'Cliente', selectedClientRecord.id), {
+      await safeUpdateDoc('Cliente', selectedClientRecord.id, {
         UsuarioId: user.id,
         UsuarioNombre: user.Usuario || user.Nombre || null,
       });
@@ -95,6 +122,7 @@ const Cliente = () => {
           eliminarCliente={eliminarCliente}
           editarCliente={editarCliente}
           onSelectCliente={onSelectCliente}
+          desvincularUsuario={desvincularUsuario}
         />
 
         {/* When a client row is tapped, open the modal with users for selection */}
@@ -111,7 +139,7 @@ const Cliente = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={clienteEditar}
-        collectionName="Cliente"
+        collection={"Cliente"}
         fields={clienteFields}
         onUpdate={cargarDatos}
         title="Editar Cliente"

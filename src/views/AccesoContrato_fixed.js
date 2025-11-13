@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity
 import SafeModal from '../Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../database/firebaseconfig.js';
-import { collection, query, where, getDocs, doc, updateDoc, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { safeUpdateDoc } from '../utils/firestoreUtils';
 
 // Simple safe formatter for fields (timestamps, objects, primitives)
 const formatField = (v) => {
@@ -153,8 +154,12 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
   if (selectedContract.Cuotas !== undefined) updateObj.Cuotas = Math.max(0, (parseInt(selectedContract.Cuotas || '0', 10) || 0) - cuotaNum);
 
   // Write update to Firestore (simple update). Consider transaction for production.
-  const ref = doc(db, 'Contrato', selectedContract.id);
-  await updateDoc(ref, updateObj);
+  try {
+    await safeUpdateDoc('Contrato', selectedContract.id, updateObj);
+  } catch (e) {
+    console.error('AccesoContrato: safeUpdateDoc error', e);
+    throw e;
+  }
 
       // Persist payment record
       try {
@@ -281,7 +286,7 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
           {(!resultados || resultados.length === 0) ? (
             <Text style={styles.noResults}>No se encontraron contratos vinculados o no hay sesión activa.</Text>
           ) : (
-            <FlatList data={resultados} keyExtractor={i => i.id} renderItem={renderContractCard} contentContainerStyle={{ paddingBottom: 40 }} />
+            <FlatList data={resultados} keyExtractor={i => i.id} renderItem={renderContractCard} contentContainerStyle={{ paddingBottom: 40 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" />
           )}
 
           {/* Detalles modal */}

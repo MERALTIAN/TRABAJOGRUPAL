@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioFactura from "../Components/FormularioFactura.js";
 import TablaFactura from "../Components/TablaFactura.js";
 
@@ -23,7 +24,8 @@ const Factura = () => {
 
   const eliminarFactura = async (id) => {
     try {
-      await deleteDoc(doc(db, "Factura", id));
+      if (!id) { console.warn('Factura.eliminarFactura: id faltante', id); return; }
+      await safeDeleteDoc('Factura', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);

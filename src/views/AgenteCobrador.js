@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc, safeUpdateDoc } from '../utils/firestoreUtils';
 import FormularioAgenteCobrador from "../Components/FormularioAgenteCobrador.js";
 import TablaAgenteCobrador from "../Components/TablaAgenteCobrador.js";
 import ModalEditar from "../Components/ModalEditar.js";
@@ -31,7 +32,11 @@ const AgenteCobrador = () => {
 
   const eliminarAgenteCobrador = async (id) => {
     try {
-      await deleteDoc(doc(db, "Agente_Cobrador", id));
+      if (!id) {
+        console.warn('AgenteCobrador.eliminarAgenteCobrador: id faltante', id);
+        return;
+      }
+      await safeDeleteDoc('Agente_Cobrador', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -56,7 +61,7 @@ const AgenteCobrador = () => {
         console.warn('No agente seleccionado para asignar usuario');
         return;
       }
-      await updateDoc(doc(db, 'Agente_Cobrador', agenteRecordId), {
+      await safeUpdateDoc('Agente_Cobrador', agenteRecordId, {
         UsuarioId: user.id,
         UsuarioNombre: user.Usuario || user.Nombre || null,
       });
@@ -86,6 +91,33 @@ const AgenteCobrador = () => {
           eliminarAgenteCobrador={eliminarAgenteCobrador}
           editarAgenteCobrador={editarAgenteCobrador}
           onSelectAgente={(a) => { setSelectedAgent(a); setUserModalVisible(true); }}
+          desvincularUsuario={async (a) => {
+            try {
+              if (!a || !a.id) {
+                console.warn('AgenteCobrador.desvincularUsuario: agente inválido', a);
+                return;
+              }
+              Alert.alert(
+                'Desvincular usuario',
+                `¿Seguro que quieres desvincular el usuario de ${a.Nombre || a.id}?`,
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  { text: 'Desvincular', style: 'destructive', onPress: async () => {
+                    try {
+                      await safeUpdateDoc('Agente_Cobrador', a.id, { UsuarioId: null, UsuarioNombre: null });
+                      cargarDatos();
+                      Alert.alert('Desvinculado', `Agente ${a.Nombre || a.id} desvinculado de usuario`);
+                    } catch (err) {
+                      console.error('Error desvinculando usuario del agente:', err);
+                      Alert.alert('Error', 'No se pudo desvincular el usuario del agente.');
+                    }
+                  }}
+                ]
+              );
+            } catch (err) {
+              console.error('Error desvinculando usuario del agente:', err);
+            }
+          }}
         />
 
         {/* AccesoContrato removed as requested (agent access removed from this view) */}
@@ -95,7 +127,7 @@ const AgenteCobrador = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={agenteEditar}
-        collectionName="Agente_Cobrador"
+        collection={"Agente_Cobrador"}
         fields={agenteFields}
         onUpdate={cargarDatos}
         title="Editar Agente Cobrador"

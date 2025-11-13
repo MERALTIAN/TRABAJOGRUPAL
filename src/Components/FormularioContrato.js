@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { db } from '../database/firebaseconfig.js';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, query, where } from 'firebase/firestore';
+import { safeUpdateDoc } from '../utils/firestoreUtils';
 let DateTimePicker = null;
 try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch(e) { DateTimePicker = null; }
 
@@ -25,6 +26,7 @@ const FormularioContrato = ({ cargarDatos = () => {} }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [montoManual, setMontoManual] = useState(null);
   const [comentario, setComentario] = useState('');
+  const [cuotasManual, setCuotasManual] = useState('');
 
   useEffect(() => {
     // cargar modelos y servicios disponibles
@@ -46,22 +48,31 @@ const FormularioContrato = ({ cargarDatos = () => {} }) => {
     load();
   }, []);
 
-  const calcularTotales = () => {
+  const calcularTotales = (overrideCuotas) => {
   const precioModelo = Number((selectedModelo && (selectedModelo.Precio !== undefined ? selectedModelo.Precio : selectedModelo.Precio)) || 0) || 0;
     const montoServicio = Number(selectedServicio?.Monto ?? 0) || 0;
     const total = precioModelo + montoServicio;
-  // cuota por unidad = 5% del total (redondeado)
-  let cuotaPorUnidad = Math.round(total * 0.05) || 0;
+  // Si el usuario fija manualmente número de cuotas, calcular cuota por unidad a partir del total
+  let cuotaPorUnidad = 0;
+  let cuotas = 0;
+  const requestedCuotas = overrideCuotas || (cuotasManual ? parseInt(cuotasManual, 10) || 0 : 0);
+  if (requestedCuotas > 0) {
+    cuotas = Math.max(1, requestedCuotas);
+    cuotaPorUnidad = Math.round(total / cuotas) || 0;
+  } else {
+    // cuota por unidad = 5% del total (redondeado)
+    cuotaPorUnidad = Math.round(total * 0.05) || 0;
     if (cuotaPorUnidad <= 0) cuotaPorUnidad = total; // evita división por cero
-    const cuotas = Math.max(1, Math.ceil(total / cuotaPorUnidad));
-    return { total, cuotaPorUnidad, cuotas };
+    cuotas = Math.max(1, Math.ceil(total / cuotaPorUnidad));
+  }
+  return { total, cuotaPorUnidad, cuotas };
   };
 
   const guardarContrato = async () => {
     if (!clienteId) return Alert.alert('Falta dato', 'Selecciona un cliente antes de guardar');
     if (!selectedModelo && !selectedServicio) return Alert.alert('Seleccione', 'Seleccione al menos un modelo o servicio');
 
-    const { total, cuotaPorUnidad, cuotas } = calcularTotales();
+  const { total, cuotaPorUnidad, cuotas } = calcularTotales();
 
     try {
       const dataToSave = {
@@ -80,13 +91,13 @@ const FormularioContrato = ({ cargarDatos = () => {} }) => {
 
       const ref = await addDoc(collection(db, 'Contrato'), dataToSave);
 
-      // eliminar modelo y servicio usados para evitar duplicados (si el usuario prefiere otra política, lo cambiamos)
+      // Marcar modelo y servicio como usados para mantener historial (en vez de eliminar)
       try {
-        if (selectedModelo && selectedModelo.id) await deleteDoc(doc(db, 'Modelo', selectedModelo.id));
-      } catch (e) { console.error('No se pudo eliminar Modelo usado:', e); }
+        if (selectedModelo && selectedModelo.id) await safeUpdateDoc('Modelo', selectedModelo.id, { usado: true });
+      } catch (e) { console.error('No se pudo marcar Modelo como usado:', e); }
       try {
-        if (selectedServicio && selectedServicio.id) await deleteDoc(doc(db, 'Servicio', selectedServicio.id));
-      } catch (e) { console.error('No se pudo eliminar Servicio usado:', e); }
+        if (selectedServicio && selectedServicio.id) await safeUpdateDoc('Servicio', selectedServicio.id, { usado: true });
+      } catch (e) { console.error('No se pudo marcar Servicio como usado:', e); }
 
       Alert.alert('Éxito', 'Contrato guardado correctamente');
       // limpiar
@@ -180,7 +191,10 @@ const FormularioContrato = ({ cargarDatos = () => {} }) => {
       <Text style={{ marginTop: 8, fontWeight: '700' }}>Comentario</Text>
       <TextInput style={[styles.input, { height: 80 }]} value={comentario} onChangeText={setComentario} multiline />
 
-  <Text style={{ marginTop: 8 }}>Cuota por unidad (5%): C$ {cuotaPorUnidad} — Cuotas: {cuotas}</Text>
+  <Text style={{ marginTop: 8 }}>Cuota por unidad: C$ {cuotaPorUnidad} — Cuotas: {cuotas}</Text>
+
+      <Text style={{ marginTop: 8, fontWeight: '700' }}>Número de cuotas (opcional)</Text>
+      <TextInput style={styles.input} value={cuotasManual} onChangeText={(t) => setCuotasManual(t.replace(/[^0-9]/g, ''))} keyboardType="numeric" placeholder={String(cuotas)} />
 
       <TouchableOpacity style={styles.saveButton} onPress={guardarContrato} activeOpacity={0.9}>
         <Text style={styles.saveButtonText}>GUARDAR</Text>

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioUsuario from "../Components/FormularioUsuario.js";
 import TablaUsuario from "../Components/TablaUsuario.js";
 
@@ -23,7 +24,8 @@ const Usuario = () => {
 
   const eliminarUsuario = async (id) => {
     try {
-      await deleteDoc(doc(db, "Usuario", id));
+      if (!id) { console.warn('Usuario.eliminarUsuario: id faltante', id); return; }
+      await safeDeleteDoc('Usuario', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);

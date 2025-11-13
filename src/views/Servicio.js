@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, doc } from "firebase/firestore";
+import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioServicio from "../Components/FormularioServicio.js";
 import TablaServicio from "../Components/TablaServicio.js";
 import ModalEditar from "../Components/ModalEditar.js"
@@ -26,7 +27,8 @@ const Servicio = () => {
 
   const eliminarServicio = async (id) => {
     try {
-      await deleteDoc(doc(db, "Servicio", id));
+      if (!id) { console.warn('Servicio.eliminarServicio: id faltante', id); return; }
+      await safeDeleteDoc('Servicio', id);
       cargarDatos();
     } catch (error) {
       console.error("Error al eliminar:", error);
@@ -73,7 +75,7 @@ const Servicio = () => {
         visible={modalVisible}
         onClose={cerrarModal}
         item={servicioEditar}
-        collectionName="Servicio"
+        collection={"Servicio"}
         fields={servicioFields}
         onUpdate={cargarDatos}
         title="Editar Servicio"

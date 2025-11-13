@@ -10,8 +10,9 @@ import {
   Image,
   Alert 
 } from "react-native";
+import UserAutocomplete from './UserAutocomplete';
 import { db } from "../database/firebaseconfig";
-import { updateDoc, doc } from "firebase/firestore";
+import { safeUpdateDoc } from '../utils/firestoreUtils';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from "expo-file-system";
 
@@ -20,6 +21,7 @@ const ModalEditar = ({
   onClose, 
   item, 
   collection, 
+  collectionName, // legacy prop name support
   fields, 
   onUpdate,
   title 
@@ -73,8 +75,29 @@ const ModalEditar = ({
       if (imagen) {
         dataToUpdate.Imagen = imagen;
       }
+      // Support either `collection` or legacy `collectionName` prop
+      const coll = collection || collectionName;
 
-      await updateDoc(doc(db, collection, item.id), dataToUpdate);
+      // Validate collection and item id before calling Firestore
+      if (!coll || typeof coll !== 'string') {
+        console.warn('ModalEditar: missing or invalid collection name', coll);
+        Alert.alert('Error', 'Nombre de colección inválido. Operación cancelada.');
+        return;
+      }
+
+      if (!item || !item.id) {
+        console.warn('ModalEditar: missing item id, cannot update', item);
+        Alert.alert('Error', 'ID del elemento faltante. Operación cancelada.');
+        return;
+      }
+
+      try {
+        await safeUpdateDoc(coll, item.id, dataToUpdate);
+      } catch (e) {
+        console.error('ModalEditar safeUpdateDoc error', e);
+        Alert.alert('Error', 'No se pudo actualizar el registro (helper).');
+        return;
+      }
       onUpdate();
       onClose();
       Alert.alert('Éxito', 'Registro actualizado correctamente');
@@ -97,6 +120,32 @@ const ModalEditar = ({
           {imagen && (
             <Image source={{ uri: imagen }} style={styles.imagePreview} />
           )}
+        </View>
+      );
+    }
+
+    // special render for user selector fields
+    if (type === 'usuario' || key === 'UsuarioId' || key === 'Usuario') {
+      // derive role from collection if possible
+      const coll = collection || collectionName || '';
+      let roleForPicker = 'Cliente';
+      if (coll.toLowerCase().includes('agente')) roleForPicker = 'Agente';
+      else if (coll.toLowerCase().includes('cliente')) roleForPicker = 'Cliente';
+
+      // build a selectedUser object from formData if present
+      const initialSelected = formData['UsuarioId'] ? { id: formData['UsuarioId'], Usuario: formData['UsuarioNombre'] || formData['Usuario'] } : null;
+
+      return (
+        <View key={key} style={styles.fieldContainer}>
+          <Text style={styles.label}>{label}</Text>
+          <UserAutocomplete role={field.role || roleForPicker} selectedUser={initialSelected} onSelect={(u) => {
+            // set both UsuarioId and UsuarioNombre in formData
+            handleInputChange('UsuarioId', u.id);
+            handleInputChange('UsuarioNombre', u.Usuario || u.Nombre || '');
+          }} />
+          {formData['UsuarioNombre'] ? (
+            <Text style={{ marginTop: 8, color: '#0b60d9', fontWeight: '700' }}>Usuario seleccionado: {formData['UsuarioNombre']}</Text>
+          ) : null}
         </View>
       );
     }
@@ -131,7 +180,7 @@ const ModalEditar = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
             {fields.map(field => renderField(field))}
           </ScrollView>
 
@@ -184,6 +233,9 @@ const styles = StyleSheet.create({
   modalContent: {
     padding: 20,
   },
+  selectedRow: { marginTop: 6, padding: 8, backgroundColor: '#f0f8ff', borderRadius: 8 },
+  selectedLabel: { fontSize: 12, color: '#0b60d9', fontWeight: '700' },
+  selectedName: { fontSize: 15, color: '#023047', fontWeight: '800', marginTop: 4 },
   fieldContainer: {
     marginBottom: 15,
   },
