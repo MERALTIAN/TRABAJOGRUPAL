@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, TextInput, TouchableO
 import SafeModal from '../Components/SafeModal';
 import FormularioSolicitud from '../Components/FormularioSolicitud.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../firebase.js';
-import { collection, query, orderBy, onSnapshot, where, doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { db } from '../database/firebaseconfig.js';
+import { collection, query, orderBy, onSnapshot, where, doc, updateDoc, serverTimestamp, deleteDoc, getDocs } from 'firebase/firestore';
 
 const SolicitarContrato = () => {
   const [solicitudes, setSolicitudes] = useState([]);
@@ -39,8 +39,8 @@ const SolicitarContrato = () => {
         // same as above: fetch guest's solicitudes and sort client-side
         q = query(collection(db, 'solicitudes_contrato'), where('guestId', '==', guestId));
       }
-      unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((d) => {
+  unsub = onSnapshot(q, (snapshot) => {
+  const data = snapshot.docs.map((d) => {
         const raw = d.data();
         // Normalizar fecha: soportar serverTimestamp y campos antiguos
         let fecha = 'Fecha no disponible';
@@ -77,6 +77,32 @@ const SolicitarContrato = () => {
         // sort by timestamp desc (most recent first)
         data.sort((a, b) => (b._ts || 0) - (a._ts || 0));
         setSolicitudes(data);
+      }, async (error) => {
+        console.error('Error en onSnapshot solicitudes (SolicitarContrato):', error);
+        // fallback a una petición puntual
+        try {
+          const snap = await getDocs(q);
+          const data = snap.docs.map((d) => {
+            const raw = d.data();
+            let fecha = 'Fecha no disponible';
+            if (raw.fechaCreacion && typeof raw.fechaCreacion.toDate === 'function') {
+              fecha = raw.fechaCreacion.toDate().toLocaleString();
+            } else if (raw.fecha && raw.fecha.seconds) {
+              try { fecha = new Date(raw.fecha.seconds * 1000).toLocaleString(); } catch(e){}
+            } else if (raw.fecha) {
+              try { fecha = new Date(raw.fecha).toLocaleString(); } catch(e){}
+            }
+            let ts = 0;
+            if (raw.fechaCreacion && typeof raw.fechaCreacion.toDate === 'function') {
+              try { ts = raw.fechaCreacion.toDate().getTime(); } catch(e){}
+            }
+            return { id: d.id, nombre: raw.nombre, cedula: raw.cedula, telefono: raw.telefono, comentario: raw.comentario || null, estado: raw.estado || 'Pendiente', fecha, _ts: ts };
+          });
+          data.sort((a,b) => (b._ts||0) - (a._ts||0));
+          setSolicitudes(data);
+        } catch (e) {
+          console.error('Fallback getDocs failed (SolicitarContrato):', e);
+        }
       });
     };
 

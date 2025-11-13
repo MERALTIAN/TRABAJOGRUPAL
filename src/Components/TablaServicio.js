@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native";
-import formatField from '../utils/formatField';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const screenWidth = Dimensions.get('window').width;
@@ -23,7 +22,7 @@ const TablaServicio = ({ servicios, eliminarServicio, editarServicio }) => {
             </View>
             <View style={styles.infoWrap}>
               <Text style={styles.cardTitle}>{servicio.Nombre}</Text>
-              <Text style={styles.cardPrice}>{servicio.Monto !== undefined ? `C$ ${Number(servicio.Monto).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '-'}</Text>
+              <Text style={styles.cardPrice}>C$ {servicio.Monto}</Text>
             </View>
           </View>
           <View style={styles.cardActions}>

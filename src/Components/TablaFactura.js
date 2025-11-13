@@ -29,8 +29,8 @@ const TablaFactura = ({ facturas, eliminarFactura }) => {
                 index % 2 === 0 ? styles.rowEven : styles.rowOdd,
               ]}
             >
-              <Text style={[styles.cell, { flex: 1.2 }]}>{typeof factura.Agente === 'object' && factura.Agente !== null ? (factura.Agente.id ?? JSON.stringify(factura.Agente)) : factura.Agente}</Text>
-              <Text style={[styles.cell, { flex: 1 }]}>{typeof factura.Contrato === 'object' && factura.Contrato !== null ? (factura.Contrato.id ?? JSON.stringify(factura.Contrato)) : factura.Contrato}</Text>
+              <Text style={[styles.cell, { flex: 1.2 }]}>{factura.Agente}</Text>
+              <Text style={[styles.cell, { flex: 1 }]}>{factura.Contrato}</Text>
               <Text style={[styles.cell, { flex: 1 }]}>C$ {factura.Monto_Decimal}</Text>
               <Text style={[styles.cell, { flex: 1 }]}>{factura.cuotas}</Text>
 

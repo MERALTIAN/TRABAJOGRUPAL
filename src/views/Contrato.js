@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from "react-native";
 import SafeModal from '../Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from "../firebase.js";
+import { db } from "../database/firebaseconfig.js";
 import { collection, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
 import FormularioContrato from "../Components/FormularioContrato.js";
 import TablaContrato from "../Components/TablaContrato.js";

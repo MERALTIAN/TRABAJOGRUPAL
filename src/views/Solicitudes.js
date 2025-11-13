@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { db } from '../firebase';
+import { db } from '../database/firebaseconfig.js';
 import { collection, query, onSnapshot, orderBy, updateDoc, doc, getDocs } from 'firebase/firestore';
 import { MaterialIcons } from '@expo/vector-icons';
 import FormularioSolicitudAdmin from '../Components/FormularioSolicitudAdmin';
@@ -40,8 +40,32 @@ const Solicitudes = () => {
       setSolicitudes(data);
       setLoading(false);
       setRefreshing(false);
-    }, (error) => {
-      console.error('Error al obtener solicitudes: ', error);
+    }, async (error) => {
+      console.error('Error al obtener solicitudes (onSnapshot): ', error);
+      // Fallback: intentar obtener una vez con getDocs y ordenar client-side
+      try {
+        const snap = await getDocs(collection(db, 'solicitudes_contrato'));
+        const fallback = snap.docs.map(doc => {
+          const raw = doc.data();
+          let fecha = 'Fecha no disponible';
+          if (raw.fechaCreacion && typeof raw.fechaCreacion.toDate === 'function') {
+            fecha = raw.fechaCreacion.toDate().toLocaleString();
+          } else if (raw.fecha && raw.fecha.seconds) {
+            try { fecha = new Date(raw.fecha.seconds * 1000).toLocaleString(); } catch(e){}
+          } else if (raw.fecha) {
+            try { fecha = new Date(raw.fecha).toLocaleString(); } catch(e){}
+          }
+          let ts = 0;
+          if (raw.fechaCreacion && typeof raw.fechaCreacion.toDate === 'function') {
+            try { ts = raw.fechaCreacion.toDate().getTime(); } catch(e){}
+          }
+          return { id: doc.id, nombre: raw.nombre, cedula: raw.cedula, telefono: raw.telefono, comentario: raw.comentario || null, estado: (raw.estado || 'Pendiente').toString(), fecha, creadoPor: raw.creadoPor || null, _ts: ts };
+        });
+        fallback.sort((a,b) => (b._ts||0) - (a._ts||0));
+        setSolicitudes(fallback);
+      } catch (e) {
+        console.error('Fallback getDocs also failed for solicitudes:', e);
+      }
       setLoading(false);
       setRefreshing(false);
     });

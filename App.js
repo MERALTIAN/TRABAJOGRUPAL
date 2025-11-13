@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, Button, StyleSheet, TouchableOpacity, ScrollView, LogBox } from 'react-native';
 import ErrorBoundary from './src/Components/ErrorBoundary';
 import SafeModal from './src/Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,6 +37,10 @@ const allScreens = [
 ];
 
 const AUTH_DISABLED = false; // set true to bypass login for testing (creates a default admin user)
+
+// Silence specific React Native warning about LayoutAnimation in the New Architecture.
+// This warning is benign; ignoring it keeps the Metro console cleaner.
+LogBox.ignoreLogs(['setLayoutAnimationEnabledExperimental is currently a no-op in the New Architecture.']);
 
 export default function App() {
 	const [index, setIndex] = useState(0);

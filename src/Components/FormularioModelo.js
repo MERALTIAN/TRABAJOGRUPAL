@@ -51,7 +51,7 @@ const FormularioModelo = ({ cargarDatos }) => {
         Medida: medida,
         Modelo: modelo,
         Nombre: nombre,
-        Precio: precio ? parseFloat(precio) : 0,
+        Precio: parseFloat(precio) || 0,
         Imagen: imagenBase64 || "", // Guardamos el Base64 directamente
         fechaCreacion: new Date(),
       });
@@ -105,9 +105,9 @@ const FormularioModelo = ({ cargarDatos }) => {
 
       <TextInput
         style={styles.input}
-        placeholder="Precio (Córdoba)"
+        placeholder="Precio"
         value={precio}
-        onChangeText={(t) => setPrecio(t.replace(/[^0-9.]/g, ''))}
+        onChangeText={setPrecio}
         keyboardType="numeric"
       />
 

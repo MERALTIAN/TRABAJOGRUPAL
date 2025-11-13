@@ -1,59 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import SafeText from './SafeText';
-import { db } from "../firebase.js";
-import { collection, getDocs } from 'firebase/firestore';
 
-const TablaAgenteCobrador = ({ agentes = [], eliminarAgenteCobrador, editarAgenteCobrador }) => {
-  const [userMap, setUserMap] = useState({});
-  const [adminList, setAdminList] = useState([]);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadUsers = async () => {
-      try {
-        const snap = await getDocs(collection(db, 'Usuario'));
-        const map = {};
-        snap.docs.forEach(d => { const r = d.data(); map[d.id] = r.Usuario || d.id; });
-        const admins = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(u => (u.rol || '').toString().toLowerCase() === 'administrador');
-        if (mounted) setUserMap(map);
-        if (mounted) setAdminList(admins);
-      } catch (e) {
-        console.error('Error cargando usuarios en TablaAgenteCobrador', e);
-      }
-    };
-    loadUsers();
-    return () => { mounted = false; };
-  }, []);
-
+const TablaAgenteCobrador = ({ agentes = [], eliminarAgenteCobrador, editarAgenteCobrador, onSelectAgente }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Lista de Agentes Cobradores</Text>
-      <ScrollView horizontal>
-        <View>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Nombre</Text>
-            <Text style={styles.headerText}>Teléfono</Text>
-            <Text style={styles.headerText}>Usuario</Text>
-            <Text style={styles.headerText}>Acciones</Text>
-          </View>
-
-          {agentes.map((agente) => (
-            <View key={agente.id} style={styles.row}>
-              <SafeText style={styles.cell}>{agente.Nombre}</SafeText>
-              <SafeText style={styles.cell}>{agente.Telefono}</SafeText>
-              <SafeText style={styles.cell}>{userMap[agente.UsuarioId] || '—'}</SafeText>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.editButton} onPress={() => editarAgenteCobrador && editarAgenteCobrador(agente)}>
-                  <Text style={styles.buttonText}>🖋️</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteButton} onPress={() => eliminarAgenteCobrador && eliminarAgenteCobrador(agente.id)}>
-                  <Text style={styles.buttonText}>🗑️</Text>
-                </TouchableOpacity>
+      <Text style={styles.title}>Agentes Cobradores</Text>
+      <ScrollView>
+        {agentes.length === 0 ? (
+          <Text style={{ color: '#666', padding: 8 }}>No hay agentes registrados.</Text>
+        ) : (
+          agentes.map(a => (
+            <TouchableOpacity key={a.id} style={styles.card} onPress={() => onSelectAgente && onSelectAgente(a)}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{a.Nombre || a.Usuario || a.id}</Text>
+                <Text style={styles.meta}>Tel: {a.Telefono || '-'}</Text>
               </View>
-            </View>
-          ))}
-        </View>
+              <View style={styles.actions}>
+                <TouchableOpacity style={styles.editBtn} onPress={() => editarAgenteCobrador && editarAgenteCobrador(a)}><Text style={styles.btnText}>🖋️</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.delBtn} onPress={() => eliminarAgenteCobrador && eliminarAgenteCobrador(a.id)}><Text style={styles.btnText}>🗑️</Text></TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -61,15 +29,14 @@ const TablaAgenteCobrador = ({ agentes = [], eliminarAgenteCobrador, editarAgent
 
 const styles = StyleSheet.create({
   container: { padding: 10 },
-  titulo: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  header: { flexDirection: 'row', backgroundColor: '#f0f0f0', padding: 10 },
-  headerText: { width: 140, fontWeight: 'bold', textAlign: 'center' },
-  row: { flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderBottomColor: '#ccc', alignItems: 'center' },
-  cell: { width: 140, textAlign: 'center' },
-  actionButtons: { flexDirection: 'row', width: 140, justifyContent: 'space-around' },
-  editButton: { backgroundColor: '#007bff', padding: 8, borderRadius: 5, width: 35, alignItems: 'center' },
-  deleteButton: { backgroundColor: '#ff4444', padding: 8, borderRadius: 5, width: 35, alignItems: 'center' },
-  buttonText: { fontSize: 16 },
+  title: { fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  card: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#fff', borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#eef2f5' },
+  name: { fontWeight: '800', color: '#0b60d9' },
+  meta: { color: '#666', marginTop: 4 },
+  actions: { flexDirection: 'row' },
+  editBtn: { backgroundColor: '#007bff', padding: 8, borderRadius: 6, marginLeft: 8 },
+  delBtn: { backgroundColor: '#ff4444', padding: 8, borderRadius: 6, marginLeft: 8 },
+  btnText: { color: '#fff', fontWeight: '700' },
 });
 
 export default TablaAgenteCobrador;

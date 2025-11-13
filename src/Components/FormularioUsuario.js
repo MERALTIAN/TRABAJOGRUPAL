@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity } from "react-native";
 import SafeModal from './SafeModal';
-import { db } from "../database/firebaseconfig";
+import { db } from "../database/firebaseconfig.js";
 import { collection, addDoc, getDocs, query } from "firebase/firestore";
 
 const FormularioUsuario = ({ cargarDatos }) => {

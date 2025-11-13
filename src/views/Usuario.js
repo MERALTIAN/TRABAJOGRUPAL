@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import { db } from "../firebase.js";
+import { db } from "../database/firebaseconfig.js";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import FormularioUsuario from "../Components/FormularioUsuario.js";
 import TablaUsuario from "../Components/TablaUsuario.js";

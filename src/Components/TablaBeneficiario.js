@@ -22,7 +22,7 @@ const TablaBeneficiario = ({ beneficiarios, eliminarBeneficiario, editarBenefici
               <Text style={styles.cell}>{beneficiario.Apellido}</Text>
               <Text style={styles.cell}>{beneficiario.Cedula}</Text>
               <Text style={styles.cell}>{beneficiario.Nombre}</Text>
-              <Text style={styles.cell}>{String(beneficiario["N° Contrato"] || '')}</Text>
+              <Text style={styles.cell}>{beneficiario["N° Contrato"]}</Text>
               <Text style={styles.cell}>{beneficiario.Telefono}</Text>
               <View style={styles.actionButtons}>
                 <TouchableOpacity

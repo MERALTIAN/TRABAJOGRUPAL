@@ -1,5 +1,5 @@
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../database/firebaseconfig';
+import { db } from '../database/firebaseconfig.js';
 
 function toDate(value) {
   if (!value) return null;

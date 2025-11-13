@@ -15,8 +15,8 @@ import {
 } from "react-native";
 import SafeModal from '../Components/SafeModal';
 import formatField from '../utils/formatField';
-import { db } from "../firebase.js";
-import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../database/firebaseconfig.js";
+import { collection, onSnapshot, getDocs } from "firebase/firestore";
 
 /**
  * Cambio visual completo (manteniendo la lógica):
@@ -29,10 +29,13 @@ import { collection, onSnapshot } from "firebase/firestore";
  * NO se modificó: listeners de Firestore, estructura de payload, ni guardarEnContrato.
  */
 
-// Habilitar LayoutAnimation en Android
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// Nota: en la Nueva Arquitectura de RN la llamada a
+// UIManager.setLayoutAnimationEnabledExperimental es un no-op y lanza un warning.
+// Para evitar ese warning lo comentamos. Si usas una versión antigua de RN
+// y quieres habilitarlo, puedes descomentar la siguiente línea.
+// if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+//   UIManager.setLayoutAnimationEnabledExperimental(true);
+// }
 
 const formatoDinero = (v) => {
   const n = Number(v || 0);
@@ -106,11 +109,23 @@ export default function Catalogo({ user }) {
     const unsubServicios = onSnapshot(collection(db, "Servicio"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setServicios(data);
+    }, async (error) => {
+      console.error('onSnapshot Servicio failed, falling back to getDocs:', error);
+      try {
+        const snap = await getDocs(collection(db, 'Servicio'));
+        setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('getDocs fallback failed for Servicio:', e); }
     });
 
     const unsubModelos = onSnapshot(collection(db, "Modelo"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setModelos(data);
+    }, async (error) => {
+      console.error('onSnapshot Modelo failed, falling back to getDocs:', error);
+      try {
+        const snap = await getDocs(collection(db, 'Modelo'));
+        setModelos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('getDocs fallback failed for Modelo:', e); }
     });
 
     return () => {

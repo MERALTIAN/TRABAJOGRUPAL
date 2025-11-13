@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Switch, Image } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from "../firebase";
+import { db } from "../database/firebaseconfig.js";
 import { collection, getDocs, query } from "firebase/firestore";
 
 const Login = ({ onLogin, onGuestLogin }) => {

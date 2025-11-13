@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import SafeModal from './SafeModal';
-import { db } from '../firebase.js';
+import { db } from '../database/firebaseconfig.js';
 import { collection, getDocs } from 'firebase/firestore';
 
 const UserRoleList = ({ role = 'Cliente', onSelect }) => {
   const [users, setUsers] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -27,7 +25,7 @@ const UserRoleList = ({ role = 'Cliente', onSelect }) => {
 
   const openUser = (u) => {
     setSelected(u);
-    setModalVisible(true);
+    // Inline selection — call callback so parent can react (no modal required)
     if (onSelect) onSelect(u);
   };
 
@@ -37,54 +35,40 @@ const UserRoleList = ({ role = 'Cliente', onSelect }) => {
         <Text style={{ color: '#666' }}>No hay usuarios con rol {role}</Text>
       ) : (
         <View>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerCell, { flex: 1 }]}>Usuario</Text>
-            <Text style={[styles.headerCell, { width: 100, textAlign: 'center' }]}>Rol</Text>
-          </View>
-          {users.map(u => (
-            <TouchableOpacity key={u.id} style={styles.row} onPress={() => openUser(u)}>
-              <Text style={[styles.cell, { flex: 1 }]}>{u.Usuario}</Text>
-              <Text style={[styles.cell, { width: 100, textAlign: 'center' }]}>{u.rol}</Text>
-            </TouchableOpacity>
-          ))}
+          {users.map(u => {
+            const displayName = u.Usuario || u.Nombre || `${u.Nombre || ''} ${u.Apellido || ''}`.trim() || u.id;
+            const initials = (displayName.split(' ').filter(Boolean).slice(0,2).map(s=>s[0]).join('') || 'U').toUpperCase();
+            return (
+              <TouchableOpacity key={u.id} style={styles.card} onPress={() => openUser(u)}>
+                <View style={styles.leftBlock}>
+                  <View style={styles.avatarCircle}><Text style={styles.avatarText}>{initials}</Text></View>
+                  <View style={{ marginLeft: 12 }}>
+                    <Text style={styles.nameText}>{displayName}</Text>
+                    <Text style={styles.metaText}>{u.Email || u.email || u.Telefono || ''}</Text>
+                  </View>
+                </View>
+                <View style={styles.rightBlock}>
+                  <Text style={styles.rolePill}>{u.rol || role}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
-
-      <SafeModal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Detalles de Usuario</Text>
-            {selected && (
-              <ScrollView>
-                <Text style={{ fontWeight: '700' }}>{selected.Usuario}</Text>
-                <Text>Rol: {selected.rol}</Text>
-                <Text>ID: {selected.id}</Text>
-                {/* mostrar otros campos si existen */}
-                {Object.keys(selected).map(k => (
-                  (['Usuario','rol','id'].includes(k)) ? null : (
-                    <Text key={k}>{k}: {String(selected[k])}</Text>
-                  )
-                ))}
-              </ScrollView>
-            )}
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12 }}>
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}><Text>Cerrar</Text></TouchableOpacity>
-            </View>
-          </View>
-        </View>
-  </SafeModal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 6 },
-  headerRow: { flexDirection: 'row', backgroundColor: '#f6f6f6', paddingVertical: 8, paddingHorizontal: 6, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee' },
-  headerCell: { fontWeight: '700' },
-  row: { flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: '#fafafa', alignItems: 'center' },
-  cell: { flex: 1 },
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { width: '92%', maxHeight: '80%', backgroundColor: '#fff', borderRadius: 10, padding: 16 },
+  card: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#eef2f5' },
+  leftBlock: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  avatarCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0b60d9', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: '#fff', fontWeight: '800' },
+  nameText: { fontWeight: '800', fontSize: 16, color: '#0b60d9' },
+  metaText: { color: '#666', marginTop: 4 },
+  rightBlock: { alignItems: 'flex-end' },
+  rolePill: { backgroundColor: '#f0f8ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, fontWeight: '700', color: '#0b60d9' },
   closeBtn: { padding: 8 }
 });
 

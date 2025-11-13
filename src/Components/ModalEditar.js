@@ -5,13 +5,12 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
+  Modal, 
   ScrollView,
   Image,
   Alert 
 } from "react-native";
-import formatField from '../utils/formatField';
-import SafeModal from '../Components/SafeModal';
-import { db } from "../firebase.js";
+import { db } from "../database/firebaseconfig";
 import { updateDoc, doc } from "firebase/firestore";
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from "expo-file-system";
@@ -20,15 +19,13 @@ const ModalEditar = ({
   visible, 
   onClose, 
   item, 
-  collectionName, 
+  collection, 
   fields, 
   onUpdate,
   title 
 }) => {
   const [formData, setFormData] = useState({});
   const [imagen, setImagen] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -36,27 +33,6 @@ const ModalEditar = ({
       setImagen(item.Imagen || null);
     }
   }, [item]);
-
-  // cargar usuarios para campos tipo 'usuario'
-  useEffect(() => {
-    const loadUsers = async () => {
-      setUsersLoading(true);
-      try {
-        // Import firestore helpers at runtime to avoid any import/namespace collisions
-        // Destructure the helpers to ensure we're calling the functions directly
-        const { getDocs, collection } = await import('firebase/firestore');
-        const q = await getDocs(collection(db, 'Usuario'));
-        const all = q.docs.map(d => ({ id: d.id, ...d.data() }));
-        setUsers(all);
-      } catch (e) {
-        console.error('Error cargando usuarios en ModalEditar', e);
-        setUsers([]);
-      } finally {
-        setUsersLoading(false);
-      }
-    };
-    loadUsers();
-  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -97,16 +73,8 @@ const ModalEditar = ({
       if (imagen) {
         dataToUpdate.Imagen = imagen;
       }
-      // Validation: if editing a Cliente, validate Cedula format
-      if (collectionName === 'Cliente' && dataToUpdate && dataToUpdate.Cedula) {
-        const cedulaRegex = /^\d{3}-\d{6}-\d{4}[A-Z]$/;
-        if (!cedulaRegex.test(String(dataToUpdate.Cedula))) {
-          Alert.alert('Cédula inválida', 'La cédula debe tener formato 121-261204-1001F');
-          return;
-        }
-      }
 
-      await updateDoc(doc(db, collectionName, item.id), dataToUpdate);
+      await updateDoc(doc(db, collection, item.id), dataToUpdate);
       onUpdate();
       onClose();
       Alert.alert('Éxito', 'Registro actualizado correctamente');
@@ -119,43 +87,10 @@ const ModalEditar = ({
   const renderField = (field) => {
     const { key, label, type, keyboardType } = field;
     
-    // Campo especial: selector de Usuario (vincular por rol)
-    if (type === 'usuario') {
-      // Determinar filtro por rol según la collectionName (Cliente -> Cliente, Agente_Cobrador -> Agente)
-      let roleFilter = null;
-      if (collectionName && typeof collectionName === 'string') {
-        const c = collectionName.toLowerCase();
-        if (c.includes('cliente')) roleFilter = 'Cliente';
-        else if (c.includes('agente')) roleFilter = 'Agente';
-      }
-
-      const filtered = usersLoading ? [] : (roleFilter ? users.filter(u => (u.rol || '').toString().toLowerCase() === roleFilter.toLowerCase()) : users);
-
-      return (
-        <View key={key} style={styles.fieldContainer}>
-          <Text style={styles.label}>{formatField(label)}</Text>
-          {usersLoading ? (
-            <Text>Cargando usuarios…</Text>
-          ) : (
-            <View>
-              {filtered.map(u => (
-                <TouchableOpacity key={u.id} style={{ paddingVertical: 8 }} onPress={() => handleInputChange(key, u.id)}>
-                  <Text style={{ color: formData[key] === u.id ? '#0b60d9' : '#333', fontWeight: formData[key] === u.id ? '700' : '400' }}>{u.Usuario} {u.rol ? `(${u.rol})` : ''}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity onPress={() => handleInputChange(key, null)} style={{ marginTop: 8 }}>
-                <Text style={{ color: '#888' }}>Desvincular usuario</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      );
-    }
-
     if (type === 'image') {
       return (
         <View key={key} style={styles.fieldContainer}>
-          <Text style={styles.label}>{formatField(label)}</Text>
+          <Text style={styles.label}>{label}</Text>
           <TouchableOpacity style={styles.imageButton} onPress={seleccionarImagen}>
             <Text style={styles.imageButtonText}>📷 Seleccionar Imagen</Text>
           </TouchableOpacity>
@@ -168,7 +103,7 @@ const ModalEditar = ({
 
     return (
       <View key={key} style={styles.fieldContainer}>
-  <Text style={styles.label}>{formatField(label)}</Text>
+        <Text style={styles.label}>{label}</Text>
         <TextInput
           style={styles.input}
           value={formData[key]?.toString() || ''}
@@ -181,11 +116,16 @@ const ModalEditar = ({
   };
 
   return (
-    <SafeModal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{formatField(title)}</Text>
+            <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
             </TouchableOpacity>
@@ -205,7 +145,7 @@ const ModalEditar = ({
           </View>
         </View>
       </View>
-    </SafeModal>
+    </Modal>
   );
 };
 

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from "react-native";
-import { db } from "../firebase.js";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from "react-native";
+import { db } from "../database/firebaseconfig.js";
+import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import FormularioCliente from "../Components/FormularioCliente.js";
 import TablaCliente from "../Components/TablaCliente.js";
+import UserRoleList from '../Components/UserRoleList.js';
+import SafeModal from '../Components/SafeModal.js';
 // UserRoleList not required here; selection handled inside forms
 import ModalEditar from "../Components/ModalEditar.js";
 
@@ -11,6 +13,9 @@ const Cliente = () => {
   const [clientes, setClientes] = useState([]);
   const [clienteEditar, setClienteEditar] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [userModalVisible, setUserModalVisible] = useState(false);
+  const [selectedUserForCliente, setSelectedUserForCliente] = useState(null);
+  const [selectedClientRecord, setSelectedClientRecord] = useState(null);
 
   const cargarDatos = async () => {
     try {
@@ -39,6 +44,30 @@ const Cliente = () => {
     setModalVisible(true);
   };
 
+  const onSelectCliente = (cliente) => {
+    // open modal with users when touching a client row
+    setSelectedClientRecord(cliente);
+    setUserModalVisible(true);
+  };
+
+  const assignUserToClient = async (user) => {
+    if (!selectedClientRecord || !selectedClientRecord.id) return;
+    try {
+      await updateDoc(doc(db, 'Cliente', selectedClientRecord.id), {
+        UsuarioId: user.id,
+        UsuarioNombre: user.Usuario || user.Nombre || null,
+      });
+      // feedback and refresh data
+      Alert.alert('Usuario vinculado', `${user.Usuario || user.Nombre || user.id} vinculado a ${selectedClientRecord.Nombre || selectedClientRecord.id}`);
+      setUserModalVisible(false);
+      setSelectedUserForCliente(user);
+      setSelectedClientRecord(null);
+      await cargarDatos();
+    } catch (err) {
+      console.error('Error vinculando usuario al cliente:', err);
+    }
+  };
+
   const cerrarModal = () => {
     setModalVisible(false);
     setClienteEditar(null);
@@ -65,9 +94,17 @@ const Cliente = () => {
           clientes={clientes} 
           eliminarCliente={eliminarCliente}
           editarCliente={editarCliente}
+          onSelectCliente={onSelectCliente}
         />
 
-        {/* User selector removed from Cliente view per UX request; selection is performed inside forms when needed. */}
+        {/* When a client row is tapped, open the modal with users for selection */}
+        <SafeModal visible={userModalVisible} transparent animationType="slide" onRequestClose={() => { setUserModalVisible(false); setSelectedClientRecord(null); }}>
+          <View style={{ padding: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Usuarios (rol: Cliente)</Text>
+            <UserRoleList role="Cliente" onSelect={(u) => { assignUserToClient(u); }} />
+            <TouchableOpacity onPress={() => { setUserModalVisible(false); setSelectedClientRecord(null); }} style={{ marginTop: 12, alignSelf: 'flex-end' }}><Text>Cerrar</Text></TouchableOpacity>
+          </View>
+        </SafeModal>
       </ScrollView>
 
       <ModalEditar

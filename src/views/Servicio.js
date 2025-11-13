@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
-import { db } from "../firebase.js";
+import { db } from "../database/firebaseconfig.js";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import FormularioServicio from "../Components/FormularioServicio.js";
 import TablaServicio from "../Components/TablaServicio.js";
-import ModalEditar from "../Components/ModalEditar.js";
+import ModalEditar from "../Components/ModalEditar.js"
 
 const Servicio = () => {
   const [servicios, setServicios] = useState([]);

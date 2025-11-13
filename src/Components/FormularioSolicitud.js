@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../firebase.js';
+import { db } from '../database/firebaseconfig.js';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 // Formulario real para crear solicitudes de contrato.

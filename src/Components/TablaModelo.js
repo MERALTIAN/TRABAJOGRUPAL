@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
-import formatField from '../utils/formatField';
 import { MaterialIcons } from "@expo/vector-icons";
 
 const screenWidth = Dimensions.get("window").width;
@@ -39,12 +38,11 @@ const TablaModelo = ({ modelos, eliminarModelo, editarModelo }) => {
                   <Text style={styles.noImageText}>Sin imagen</Text>
                 )}
               </View>
-              <Text style={[styles.cell, { flex: 1 }]}>{formatField(modelo.Color)}</Text>
-              <Text style={[styles.cell, { flex: 1 }]}>{formatField(modelo.Medida)}</Text>
-              <Text style={[styles.cell, { flex: 1 }]}>{formatField(modelo.Modelo)}</Text>
-              <Text style={[styles.cell, { flex: 1 }]}>{formatField(modelo.Nombre)}</Text>
-              <Text style={[styles.cell, { flex: 0.8 }]}>{modelo.Precio !== undefined ? `C$ ${Number(modelo.Precio).toLocaleString('en-US', {minimumFractionDigits: 2})}` : '-'}</Text>
-
+              <Text style={[styles.cell, { flex: 1 }]}>{modelo.Color}</Text>
+              <Text style={[styles.cell, { flex: 1 }]}>{modelo.Medida}</Text>
+              <Text style={[styles.cell, { flex: 1 }]}>{modelo.Modelo}</Text>
+              <Text style={[styles.cell, { flex: 1 }]}>{modelo.Nombre}</Text>
+              <Text style={[styles.cell, { flex: 0.8 }]}>{typeof modelo.Precio !== 'undefined' ? `C$ ${modelo.Precio}` : '-'}</Text>
               <View style={[styles.cell, { flex: 0.8, flexDirection: "row", justifyContent: "space-around" }]}> 
                 <TouchableOpacity
                   style={styles.editButton}
