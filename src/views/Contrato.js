@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from "react-native";
 import SafeModal from '../Components/SafeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from "../database/firebaseconfig.js";
@@ -168,8 +168,8 @@ const Contrato = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.scrollContainer}>
+    <>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
         {/* If not Cliente, show full form + table. If Cliente, show a simplified status view. */}
         {!isCliente ? (
           <>
@@ -177,13 +177,16 @@ const Contrato = () => {
               <FormularioContrato cargarDatos={cargarDatos} />
             </View>
 
-            <TablaContrato 
-              contratos={contratos} 
-              eliminarContrato={eliminarContrato}
-              editarContrato={editarContrato}
-              currentUser={currentUser}
-              verClientes={verClientes}
-            />
+            <View>
+              <TablaContrato 
+                contratos={contratos} 
+                eliminarContrato={eliminarContrato}
+                editarContrato={editarContrato}
+                currentUser={currentUser}
+                verClientes={verClientes}
+                useScrollView={true}
+              />
+            </View>
           </>
         ) : (
           <View style={styles.clientContainer}>
@@ -202,7 +205,7 @@ const Contrato = () => {
             )}
           </View>
         )}
-      </View>
+    </ScrollView>
 
       <ModalEditar
         visible={modalVisible}
@@ -232,7 +235,7 @@ const Contrato = () => {
               </View>
             </View>
           </SafeModal>
-    </View>
+    </>
   );
 };
 
