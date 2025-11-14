@@ -121,7 +121,7 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
     // Determine per-cuota amount: prefer stored CuotaMonto, fallback to 15% of original total if available
     const cuotaPorUnidad = parseFloat(selectedContract.CuotaMonto || selectedContract.CuotaMonto) || 0;
     // If not stored, try to estimate from original Monto and commission percent
-    const montoNum = cuotaPorUnidad > 0 ? (cuotaNum * cuotaPorUnidad) : (cuotaNum * Math.round((selectedContract.Monto || 0) * 0.15));
+    const montoNum = cuotaPorUnidad > 0 ? (cuotaNum * cuotaPorUnidad) : (cuotaNum * Math.round((selectedContract.Monto || 0) * 0.05));
 
     // Update local state and Firestore: subtract from contract's Monto and Cuotas
     try {
@@ -151,6 +151,10 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
 
   // Prepare update object for Firestore. Update both CuotasRestantes and Cuotas if Cuotas exists to keep consistency.
   const updateObj = { Monto: updated.Monto, CuotasRestantes: newCuotasRest };
+  // Si el contrato quedó con monto 0, marcar como Pagado
+  if (updated.Monto <= 0) {
+    updateObj.Estado = 'Pagado';
+  }
   if (selectedContract.Cuotas !== undefined) updateObj.Cuotas = Math.max(0, (parseInt(selectedContract.Cuotas || '0', 10) || 0) - cuotaNum);
 
   // Write update to Firestore (simple update). Consider transaction for production.

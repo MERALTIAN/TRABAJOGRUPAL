@@ -27,7 +27,7 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
           Telefono: telefonoDigits
         });
         setApellido("");
-        setCedula("");
+          setCedula("");
         setNombre("");
         setNumeroContrato("");
         setTelefono("");
@@ -71,7 +71,13 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
         style={styles.input}
         placeholder="Cédula"
         value={cedula}
-        onChangeText={setCedula}
+        onChangeText={(text) => {
+          // Permitir sólo dígitos, guiones y letra final. Máximo 16 caracteres (ej: 121-261204-1001F)
+          let v = text.toUpperCase();
+          v = v.replace(/[^0-9A-Z-]/g, '');
+          if (v.length > 16) v = v.slice(0, 16);
+          setCedula(v);
+        }}
       />
 
       <TextInput

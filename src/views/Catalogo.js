@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
+  LayoutAnimation,
   ScrollView,
   FlatList,
   useWindowDimensions,
@@ -12,7 +13,7 @@ import {
 import SafeModal from '../Components/SafeModal';
 import formatField from '../utils/formatField';
 import { db } from "../database/firebaseconfig.js";
-import { collection, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, getDocs, query, where } from "firebase/firestore";
 import { safeUpdateDoc } from '../utils/firestoreUtils';
 
 /**
@@ -136,15 +137,60 @@ export default function Catalogo({ user }) {
       if (!user || user.rol === "Invitado") {
         return alert("Debes iniciar sesión como cliente para guardar en un contrato.");
       }
-      const payload = {
-        ClienteId: user.clientId || user.id || null,
-        ItemId: item.id,
-        ItemTipo: tipo,
-        Fecha: new Date().toISOString(),
-        Monto: item.Monto || item.Precio || 0,
-      };
-      const { addDoc, collection } = await import("firebase/firestore");
-      await addDoc(collection(db, "Contrato"), payload);
+      const price = Number(item.Monto ?? item.Precio ?? 0) || 0;
+      const clientId = user.clientId || user.id || null;
+
+      // Buscar contrato abierto del cliente (Estado distinto de 'Pagado'). Si no existe, crear uno nuevo.
+      let existing = null;
+      if (clientId) {
+        try {
+          const q = query(collection(db, 'Contrato'), where('ClienteId', '==', clientId));
+          const snap = await getDocs(q);
+          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          existing = docs.find(d => !(d.Estado || '').toString().toLowerCase().includes('pag')) || null;
+        } catch (e) {
+          console.error('Error buscando contratos existentes del cliente:', e);
+        }
+      }
+
+      if (existing) {
+        // Actualizar contrato existente: sumar monto y agregar item al listado
+        try {
+          const newMonto = (Number(existing.Monto || 0) || 0) + price;
+          // recalcular cuota: 5% del total
+          const cuotaPorUnidad = Math.round(newMonto * 0.05) || newMonto;
+          const cuotas = Math.max(1, Math.ceil(newMonto / cuotaPorUnidad));
+          const updatedItems = Array.isArray(existing.Items) ? [...existing.Items] : [];
+          updatedItems.push({ id: item.id, tipo, nombre: item.Nombre || item.Modelo || '', precio: price });
+          const updateObj = { Monto: newMonto, Items: updatedItems, CuotaMonto: cuotaPorUnidad, Cuotas: cuotas, CuotasRestantes: cuotas };
+          await safeUpdateDoc('Contrato', existing.id, updateObj);
+          alert('Contrato actualizado: monto y items sumados correctamente.');
+        } catch (e) {
+          console.error('Error actualizando contrato existente:', e);
+          alert('Error al actualizar el contrato.');
+        }
+      } else {
+        // Crear nuevo contrato con el item
+        try {
+          const payload = {
+            ClienteId: clientId,
+            Fecha_Inicio: new Date().toISOString().slice(0,10),
+            Monto: price,
+            Estado: 'Pendiente',
+            Items: [{ id: item.id, tipo, nombre: item.Nombre || item.Modelo || '', precio: price }],
+            CuotaMonto: Math.round(price * 0.05) || price,
+            Cuotas: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price))),
+            CuotasRestantes: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price)))
+          };
+          const { addDoc, collection } = await import("firebase/firestore");
+          await addDoc(collection(db, "Contrato"), payload);
+          alert("Guardado en contrato correctamente.");
+        } catch (err) {
+          console.error('Error creando nuevo contrato desde catálogo:', err);
+          alert('Error al crear contrato.');
+        }
+      }
+
       // marcar como usado en el catálogo (usado:true) para preservar historial
       try {
         const col = tipo === 'servicio' ? 'Servicio' : 'Modelo';
@@ -152,7 +198,6 @@ export default function Catalogo({ user }) {
       } catch (e) {
         console.error('No se pudo marcar item como usado en el catálogo:', e);
       }
-      alert("Guardado en contrato correctamente y eliminado del catálogo");
     } catch (err) {
       console.error("Error guardando en contrato", err);
       alert("Error al guardar");
@@ -160,7 +205,14 @@ export default function Catalogo({ user }) {
   };
 
   const cambiarTab = (t) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    try {
+      if (typeof LayoutAnimation !== 'undefined' && LayoutAnimation && LayoutAnimation.configureNext && LayoutAnimation.Presets) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      }
+    } catch (e) {
+      // LayoutAnimation not available in this environment/version — ignore
+      console.warn('LayoutAnimation not available:', e);
+    }
     setTab(t);
   };
 
@@ -195,9 +247,9 @@ export default function Catalogo({ user }) {
           <View style={[styles.modalCard, { width: Math.min(720, width - 24) }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{formatField(nombre)}</Text>
-              <Pressable onPress={() => setDetalle(null)} style={styles.modalClose}>
+              <TouchableOpacity onPress={() => setDetalle(null)} style={styles.modalClose}>
                 <Text style={styles.modalCloseText}>✕</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {item.Imagen ? (
