@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Dimensions, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const screenWidth = Dimensions.get("window").width;
@@ -57,6 +57,15 @@ const TablaModelo = ({ modelos, eliminarModelo, editarModelo }) => {
                   activeOpacity={0.8}
                 >
                   <MaterialIcons name="delete" size={20} color="#ffffffff" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.moreBtn} onPress={() => {
+                  Alert.alert('Opciones', undefined, [
+                    { text: 'Editar', onPress: () => editarModelo(modelo) },
+                    { text: 'Eliminar', style: 'destructive', onPress: () => eliminarModelo(modelo.id) },
+                    { text: 'Cancelar', style: 'cancel' }
+                  ]);
+                }}>
+                  <MaterialIcons name="more-vert" size={20} color="#444" />
                 </TouchableOpacity>
               </View>
             </View>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { validateCedula, formatCedula } from '../utils/cedula';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../database/firebaseconfig.js';
@@ -30,9 +31,8 @@ export default function FormularioSolicitud({ onSubmitted }) {
 
   const validar = () => {
     if (!nombre.trim()) return 'Ingrese su nombre completo.';
-    const cedulaRegex = /^\d{3}-\d{6}-\d{4}[A-Za-z]$/;
     if (!cedula.trim()) return 'Ingrese su cédula.';
-    if (!cedulaRegex.test(cedula.trim())) return 'Cédula inválida. Formato esperado: 121-261204-1001F';
+    if (!validateCedula(cedula.trim())) return 'Cédula inválida. Formato esperado: 121-261204-1001F';
     if (!telefono.trim()) return 'Ingrese su número de teléfono.';
     const telefonoDigits = telefono.replace(/[^0-9]/g, '');
     if (!telefonoDigits || telefonoDigits.length < 6) return 'Teléfono inválido. Ingrese sólo números.';
@@ -81,7 +81,18 @@ export default function FormularioSolicitud({ onSubmitted }) {
       <Text style={styles.title}>Crear solicitud</Text>
 
       <TextInput placeholder="Nombre Completo" style={styles.input} value={nombre} onChangeText={setNombre} />
-      <TextInput placeholder="Cédula" style={styles.input} value={cedula} onChangeText={setCedula} />
+      <TextInput
+        placeholder="Cédula"
+        style={styles.input}
+        value={cedula}
+        onChangeText={(text) => {
+          let v = text.toUpperCase();
+          v = v.replace(/[^0-9A-Z-]/g, '');
+          if (v.length > 16) v = v.slice(0, 16);
+          setCedula(v);
+        }}
+        onBlur={() => { setCedula(formatCedula(cedula)); }}
+      />
       <TextInput placeholder="Número de Teléfono" style={styles.input} value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
   <TextInput placeholder="Comentario (qué necesitas para el contrato, detalles)" style={[styles.input, { height: 100 }]} value={comentario} onChangeText={setComentario} multiline />
 

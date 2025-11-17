@@ -18,6 +18,7 @@ import Invitado from "./src/views/Invitado";
 import Login from "./src/views/Login";
 import SolicitarContrato from "./src/views/SolicitarContrato";
 import Solicitudes from "./src/views/Solicitudes";
+import EstadisticasAdmin from "./src/views/EstadisticasAdmin";
 import BottomNav from "./src/Components/BottomNav";
 
 const allScreens = [
@@ -25,6 +26,7 @@ const allScreens = [
   { key: 'solicitar_contrato', name: 'Solicitar Contrato', component: SolicitarContrato, roles: ['Cliente'] },
   { key: 'acceso_contrato', name: 'Acceso Contrato', component: AccesoContrato, roles: ['Cliente', 'Agente'] },
   { key: 'solicitudes', name: 'Solicitudes', component: Solicitudes, roles: ['Administrador'] }, // <-- Nueva pantalla
+  { key: 'estadisticas', name: 'Estadísticas', component: EstadisticasAdmin, roles: ['Administrador'] },
   { key: 'usuario', name: 'Usuario', component: Usuario, roles: ['Administrador'] },
 	{ key: 'servicio', name: 'Servicio', component: Servicio, roles: ['Administrador'] },
 	{ key: 'modelo', name: 'Modelo', component: Modelo, roles: ['Administrador'] },

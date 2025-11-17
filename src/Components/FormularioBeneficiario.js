@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { validateCedula, formatCedula } from '../utils/cedula';
 import { View, TextInput, Button, StyleSheet, Text, TouchableOpacity, ScrollView } from "react-native";
 import { db } from "../database/firebaseconfig";
 import { collection, addDoc, getDocs } from "firebase/firestore";
@@ -13,9 +14,8 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const guardarBeneficiario = async () => {
-    const cedulaRegex = /^\d{3}-\d{6}-\d{4}[A-Za-z]$/;
     const telefonoDigits = telefono ? telefono.replace(/[^0-9]/g, '') : '';
-    if (!cedulaRegex.test(cedula)) return alert('Cédula inválida. Formato esperado: 121-261204-1001F');
+    if (!validateCedula(cedula)) return alert('Cédula inválida. Formato esperado: 121-261204-1001F');
     if (!telefonoDigits || telefonoDigits.length < 6) return alert('Teléfono inválido. Ingrese sólo números.');
     if (apellido && cedula && nombre && numeroContrato && telefono) {
       try {
@@ -27,7 +27,7 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
           Telefono: telefonoDigits
         });
         setApellido("");
-          setCedula("");
+            setCedula("");
         setNombre("");
         setNumeroContrato("");
         setTelefono("");
@@ -72,12 +72,12 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
         placeholder="Cédula"
         value={cedula}
         onChangeText={(text) => {
-          // Permitir sólo dígitos, guiones y letra final. Máximo 16 caracteres (ej: 121-261204-1001F)
           let v = text.toUpperCase();
           v = v.replace(/[^0-9A-Z-]/g, '');
           if (v.length > 16) v = v.slice(0, 16);
           setCedula(v);
         }}
+        onBlur={() => { const f = formatCedula(cedula); setCedula(f); }}
       />
 
       <TextInput

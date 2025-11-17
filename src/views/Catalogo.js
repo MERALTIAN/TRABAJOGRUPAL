@@ -63,34 +63,15 @@ const CardItem = ({ item, onDetails, onSave, type }) => {
       </TouchableOpacity>
 
       <View style={styles.cardBody}>
-        <View style={styles.cardHead}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {item.Nombre || item.Modelo}
-          </Text>
-          <Text style={styles.cardPriceSmall}>{formatoDinero(item.Precio || item.Monto)}</Text>
-        </View>
-
-        <Text style={styles.cardDescription} numberOfLines={3}>
-          {descripcion}
-        </Text>
-
-        <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.detailBtn}
-            activeOpacity={0.85}
-            onPress={() => onDetails({ tipo: type, data: item })}
-          >
-            <Text style={styles.detailBtnText}>ℹ️  Ver detalles</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.saveBtn}
-            activeOpacity={0.85}
-            onPress={() => onSave(item, type)}
-          >
-            <Text style={styles.saveBtnText}>💾</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.cardTitle}>{item.Nombre || "Sin título"}</Text>
+        <Text style={styles.cardDescription}>{descripcion}</Text>
+        <Text style={styles.cardPrice}>{formatoDinero(item.Precio)}</Text>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={() => onSave(item)}
+        >
+          <Text style={styles.saveButtonText}>Guardar</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

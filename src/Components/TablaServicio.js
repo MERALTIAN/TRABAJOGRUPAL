@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Alert } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 
 const screenWidth = Dimensions.get('window').width;
@@ -41,6 +41,16 @@ const TablaServicio = ({ servicios, eliminarServicio, editarServicio }) => {
             >
               <MaterialIcons name="delete" size={22} color="#ffffffff" />
               <Text style={[styles.actionText, { color: '#ffffffff' }]}>Eliminar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.moreBtn} onPress={() => {
+              Alert.alert(servicio.Nombre || 'Opciones', undefined, [
+                { text: 'Editar', onPress: () => editarServicio(servicio) },
+                { text: 'Eliminar', style: 'destructive', onPress: () => eliminarServicio(servicio.id) },
+                { text: 'Cancelar', style: 'cancel' }
+              ]);
+            }}>
+              <MaterialIcons name="more-vert" size={22} color="#444" />
             </TouchableOpacity>
           </View>
         </View>
@@ -129,6 +139,7 @@ const styles = StyleSheet.create({
      paddingEnd: 20,
     },
   actionText: { marginLeft: 6, fontWeight: "500", color: "#ffffffff", fontSize: 16 },
+  moreBtn: { marginLeft: 10, alignItems: 'center', justifyContent: 'center' }
 });
 
 export default TablaServicio;

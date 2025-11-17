@@ -254,3 +254,93 @@ export async function getCostsBreakdown() {
     return { labels: ['Desarrollo','Pruebas','Hosting','Infra'], values: [12000,3000,4000,6000] };
   }
 }
+
+// Cuenta de usuarios por rol (ej: Administrador, Agente, Cliente)
+export async function getUsuariosPorRol() {
+  try {
+    const snap = await getDocs(collection(db, 'Usuario'));
+    const counts = {};
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const rol = (raw.rol || raw.Rol || raw.role || raw.Role || 'Sin rol').toString();
+      counts[rol] = (counts[rol] || 0) + 1;
+    });
+    return Object.keys(counts).map(k => ({ name: k, count: counts[k] }));
+  } catch (e) {
+    console.error('getUsuariosPorRol error', e);
+    return [];
+  }
+}
+
+// Conteo simple de facturas por estado: pagada, pendiente, vencida, otro
+export async function getFacturasPorEstado() {
+  try {
+    const snap = await getDocs(collection(db, 'Factura'));
+    const counts = { pagada: 0, pendiente: 0, vencida: 0, otro: 0 };
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const estado = (raw.Estado || raw.estado || raw.EstadoPago || raw.estadoPago || '').toString().toLowerCase();
+      if (!estado) { counts.otro += 1; return; }
+      if (estado.includes('pag') || estado.includes('paid')) counts.pagada += 1;
+      else if (estado.includes('pend') || estado.includes('pendiente') || estado.includes('pending')) counts.pendiente += 1;
+      else if (estado.includes('venc') || estado.includes('vencido') || estado.includes('overdue')) counts.vencida += 1;
+      else counts.otro += 1;
+    });
+    return counts;
+  } catch (e) {
+    console.error('getFacturasPorEstado error', e);
+    return { pagada: 0, pendiente: 0, vencida: 0, otro: 0 };
+  }
+}
+
+// --- Contratos-based metrics
+// Ingresos mensuales calculados a partir de la colección 'Contrato'
+export async function getIngresosMensualesFromContratos(year) {
+  try {
+    const snap = await getDocs(collection(db, 'Contrato'));
+    const months = new Array(12).fill(0);
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha_Creacion) || toDate(raw.fechaCreacion) || toDate(raw.FechaInicio) || toDate(raw.Fecha_Inicio) || toDate(raw.createdAt);
+      if (!fecha) return;
+      const y = fecha.getFullYear();
+      if (year && y !== year) return;
+      const m = fecha.getMonth();
+      const monto = Number(raw.Monto ?? raw.monto ?? raw.Valor ?? raw.Total ?? raw.Precio ?? 0) || 0;
+      months[m] += monto;
+    });
+
+    const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return months.map((amount, i) => ({ month: names[i], amount }));
+  } catch (e) {
+    console.error('getIngresosMensualesFromContratos error', e);
+    return [];
+  }
+}
+
+// Total cobrado por agente calculado a partir de la colección 'Contrato'
+export async function getCobrosPorAgenteFromContratos(year) {
+  try {
+    const snap = await getDocs(collection(db, 'Contrato'));
+    const totals = {};
+
+    snap.docs.forEach(d => {
+      const raw = d.data();
+      const fecha = toDate(raw.Fecha_Creacion) || toDate(raw.fechaCreacion) || toDate(raw.FechaInicio) || toDate(raw.Fecha_Inicio) || toDate(raw.createdAt);
+      if (!fecha) return;
+      if (year && fecha.getFullYear() !== year) return;
+      const monto = Number(raw.Monto ?? raw.monto ?? raw.Valor ?? raw.Total ?? raw.Precio ?? 0) || 0;
+
+      let agent = raw.Agente || raw.AgenteNombre || raw.AgenteId || raw.Cobrador || raw.CobradorId || raw.agente || null;
+      if (!agent && raw.AgenteId && typeof raw.AgenteId === 'string') agent = raw.AgenteId;
+      const key = (agent || 'Sin agente').toString();
+      totals[key] = (totals[key] || 0) + monto;
+    });
+
+    return Object.keys(totals).map(k => ({ agent: k, total: totals[k] }));
+  } catch (e) {
+    console.error('getCobrosPorAgenteFromContratos error', e);
+    return [];
+  }
+}

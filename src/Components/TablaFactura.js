@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const screenWidth = Dimensions.get("window").width;
@@ -35,13 +35,13 @@ const TablaFactura = ({ facturas, eliminarFactura }) => {
               <Text style={[styles.cell, { flex: 1 }]}>{factura.cuotas}</Text>
 
               <View style={[styles.cell, { flex: 0.8 }]}>
-                <TouchableOpacity
-                  style={styles.deleteButton}
-                  onPress={() => eliminarFactura(factura.id)}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons name="delete" size={20} color="#ffffffff" />
-                  <Text style={styles.deleteText}></Text>
+                <TouchableOpacity style={styles.moreBtn} onPress={() => {
+                  Alert.alert('Opciones', undefined, [
+                    { text: 'Eliminar', style: 'destructive', onPress: () => eliminarFactura(factura.id) },
+                    { text: 'Cancelar', style: 'cancel' }
+                  ]);
+                }}>
+                  <MaterialIcons name="more-vert" size={20} color="#444" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -123,6 +123,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
+  moreBtn: { alignItems: 'center', justifyContent: 'center' }
 });
 
 export default TablaFactura;
