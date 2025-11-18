@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { db } from '../database/firebaseconfig.js';
 import { collection, getDocs, query, where, limit as limitQ, orderBy, startAfter } from 'firebase/firestore';
 
@@ -155,15 +155,9 @@ const UserAutocomplete = ({ role = 'Cliente', selectedUser, onSelect }) => {
           {((serverResults && serverResults.length) || filtered.length) === 0 ? (
             <Text style={styles.noResult}>No se encontraron usuarios</Text>
           ) : (
-            <FlatList
-              data={(serverResults && serverResults.length) ? serverResults : filtered}
-              keyExtractor={(item) => item.id}
-              nestedScrollEnabled={true}
-              keyboardShouldPersistTaps="handled"
-              onEndReachedThreshold={0.5}
-              onEndReached={() => { loadMore(); }}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.row} onPress={() => { onSelect && onSelect(item); setFilter(''); setShowList(false); }}>
+            <ScrollView keyboardShouldPersistTaps="handled">
+              {(serverResults && serverResults.length ? serverResults : filtered).map((item) => (
+                <TouchableOpacity key={item.id} style={styles.row} onPress={() => { onSelect && onSelect(item); setFilter(''); setShowList(false); }}>
                   <View style={styles.rowLeft}>
                     <View style={styles.avatar}><Text style={styles.avatarText}>{(displayName(item).split(' ').map(s=>s[0]).join('').slice(0,2) || 'U').toUpperCase()}</Text></View>
                     <View>
@@ -173,8 +167,13 @@ const UserAutocomplete = ({ role = 'Cliente', selectedUser, onSelect }) => {
                   </View>
                   <View style={styles.rolePill}><Text style={styles.roleText}>{item.rol || role}</Text></View>
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+              {lastUsuarioDoc ? (
+                <TouchableOpacity style={{ padding: 12, alignItems: 'center' }} onPress={() => { loadMore(); }}>
+                  <Text style={{ color: '#0b60d9', fontWeight: '700' }}>Cargar más</Text>
+                </TouchableOpacity>
+              ) : null}
+            </ScrollView>
           )}
         </View>
       )}

@@ -1,19 +1,30 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, StyleSheet, Text, TextInput, TouchableOpacity, ScrollView } from "react-native";
-import SafeModal from '../Components/SafeModal';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, doc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioUsuario from "../Components/FormularioUsuario.js";
-import TablaUsuario from "../Components/TablaUsuario.js";
-import { Card, PrimaryButton, Title } from '../Components/UI';
+import { cardStyles } from "../Styles/cardStyles.js";
+import { MaterialIcons } from '@expo/vector-icons';
+import SafeModal from '../Components/SafeModal';
 
 const Usuario = () => {
   const [usuarios, setUsuarios] = useState([]);
-  const [filter, setFilter] = useState('');
-  const [editingUser, setEditingUser] = useState(null);
-  const scrollRef = useRef(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const editFormRef = useRef(null);
 
   const cargarDatos = async () => {
@@ -29,6 +40,17 @@ const Usuario = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await cargarDatos();
+    } catch (e) {
+      console.error('Error refreshing users', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const eliminarUsuario = async (id) => {
     try {
       if (!id) { console.warn('Usuario.eliminarUsuario: id faltante', id); return; }
@@ -41,75 +63,120 @@ const Usuario = () => {
 
   useEffect(() => {
     cargarDatos();
+    // LayoutAnimation enabling on Android is a no-op in the new RN architecture.
+    // Skipping UIManager.setLayoutAnimationEnabledExperimental to avoid noisy warnings.
   }, []);
-
-  const roleCounts = usuarios.reduce((acc, u) => {
-    const r = (u.rol || u.Rol || 'Sin rol').toString();
-    acc[r] = (acc[r] || 0) + 1;
-    return acc;
-  }, {});
-
-  const editarUsuario = (u) => {
-    // open modal edit with the user data
-    setEditingUser(null);
-    setTimeout(() => {
-      setEditingUser({ ...u });
-      setEditModalVisible(true);
-    }, 50);
-  };
-
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={{ paddingBottom: 40, alignItems: 'center', paddingHorizontal: 20, width: '100%' }} keyboardShouldPersistTaps="handled">
-      <View style={[styles.header, styles.contentWidth, styles.headerCentered]}>
-        <Title style={styles.title}>Usuarios</Title>
-      </View>
-      {/* Resumen eliminado por solicitud: se simplifica la vista Usuarios */}
-      <Card style={[styles.formArea, styles.contentWidth, { padding: 16 }]}> 
-        <FormularioUsuario cargarDatos={cargarDatos} initialData={null} onDone={() => {}} />
-      </Card>
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
+        <View style={styles.formWrapper}>
+          <FormularioUsuario cargarDatos={cargarDatos} />
+        </View>
+        {/* Header with manual refresh button */}
+        <View style={{ width: '100%', alignItems: 'flex-end', paddingHorizontal: 18, marginTop: -12 }}>
+          <TouchableOpacity style={styles.refreshBtn} onPress={handleRefresh} accessibilityLabel="Actualizar lista">
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#0b60d9" />
+            ) : (
+              <MaterialIcons name="refresh" size={20} color="#0b60d9" />
+            )}
+          </TouchableOpacity>
+        </View>
+        {usuarios.map((usuario) => {
+          const isExpanded = expandedId === usuario.id;
+          return (
+            <View key={usuario.id} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{usuario.Usuario || usuario.Nombre}</Text>
+                  <Text style={styles.cardSubtitle}>{usuario.rol}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.ellipsisButton}
+                  onPress={() => {
+                    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                    setExpandedId(isExpanded ? null : usuario.id);
+                  }}
+                >
+                  <MaterialIcons name="more-vert" size={20} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
 
-      {/* Modal para edición */}
-      <SafeModal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => { setEditModalVisible(false); setEditingUser(null); }}>
-        <View style={modalStyles.modalWrap}>
-          <View style={modalStyles.modalCard}>
-            <View style={modalStyles.modalHeader}>
-              <Text style={modalStyles.modalTitle}>Editar Usuario</Text>
-              <TouchableOpacity onPress={() => { setEditModalVisible(false); setEditingUser(null); }} style={{ padding:8 }}>
-                <Text style={{ fontSize:18 }}>✕</Text>
-              </TouchableOpacity>
+              {isExpanded && (
+                <View style={styles.expandedDetailsContainer}>
+                  <View style={styles.cardActionRow}>
+                    <TouchableOpacity
+                      style={[styles.cardButton, styles.editButton]}
+                      onPress={() => {
+                        setEditingUser(usuario);
+                        setEditModalVisible(true);
+                      }}
+                    >
+                      <MaterialIcons name="edit" size={16} color="#ffffffff" />
+                      <Text style={[styles.cardButtonText, styles.editButtonText]}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.cardButton, styles.deleteButton]}
+                      onPress={() => eliminarUsuario(usuario.id)}
+                    >
+                      <MaterialIcons name="delete" size={16} color="#ffffffff" />
+                      <Text style={[styles.cardButtonText, styles.deleteButtonText]}>Eliminar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
-            <View style={modalStyles.modalBody}>
-              <FormularioUsuario ref={editFormRef} cargarDatos={cargarDatos} initialData={editingUser} onDone={() => { setEditModalVisible(false); setEditingUser(null); }} />
-            </View>
-            <View style={modalStyles.modalFooter}>
-              <TouchableOpacity style={modalStyles.cancelBtn} onPress={() => { setEditModalVisible(false); setEditingUser(null); }}>
-                <Text style={{ color:'#fff', fontWeight:'700' }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={modalStyles.updateBtn} onPress={() => { try { editFormRef.current?.submit(); } catch(e) { console.error(e); } }}>
-                <Text style={{ color:'#fff', fontWeight:'700' }}>Actualizar</Text>
-              </TouchableOpacity>
+          );
+        })}
+
+        {/* Edit modal */}
+        <SafeModal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => { setEditModalVisible(false); setEditingUser(null); }}>
+          <View style={{ flex:1, justifyContent:'center', alignItems:'center', paddingHorizontal:16 }}>
+            <View style={{ width:'100%', maxWidth:640, backgroundColor:'#fff', borderRadius:12, overflow:'hidden' }}>
+              <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:16, borderBottomWidth:1, borderBottomColor:'#f2f2f2' }}>
+                <Text style={{ fontSize:18, fontWeight:'800' }}>Editar Usuario</Text>
+                <TouchableOpacity onPress={() => { setEditModalVisible(false); setEditingUser(null); }} style={{ padding:8 }}>
+                  <Text style={{ fontSize:18 }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ padding:12 }}>
+                <FormularioUsuario ref={editFormRef} cargarDatos={cargarDatos} initialData={editingUser} onDone={() => { setEditModalVisible(false); setEditingUser(null); }} />
+              </View>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', padding:12, borderTopWidth:1, borderTopColor:'#f2f2f2' }}>
+                <TouchableOpacity style={{ backgroundColor:'#6b7280', paddingVertical:12, paddingHorizontal:20, borderRadius:8 }} onPress={() => { setEditModalVisible(false); setEditingUser(null); }}>
+                  <Text style={{ color:'#fff', fontWeight:'700' }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ backgroundColor:'#0b60d9', paddingVertical:12, paddingHorizontal:20, borderRadius:8 }} onPress={() => { try { editFormRef.current?.submit(); } catch(e) { console.error(e); } }}>
+                  <Text style={{ color:'#fff', fontWeight:'700' }}>Actualizar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </SafeModal>
-
-      <View style={[styles.listArea, styles.contentWidth]}>
-        <TextInput placeholder="Buscar por nombre, usuario o rol..." value={filter} onChangeText={setFilter} style={styles.search} />
-        <TablaUsuario useScrollView={true} usuarios={usuarios.filter(u => {
-          const q = filter.toLowerCase().trim();
-          if (!q) return true;
-          const name = ((u.Nombre || '') + ' ' + (u.Apellido || '')).toLowerCase();
-          const usuarioField = (u.Usuario || u.email || '').toLowerCase();
-          const rol = (u.rol || u.Rol || '').toString().toLowerCase();
-          return name.includes(q) || usuarioField.includes(q) || rol.includes(q) || (u.id || '').toLowerCase().includes(q);
-        })} eliminarUsuario={eliminarUsuario} editarUsuario={editarUsuario} />
-      </View>
-    </ScrollView>
+        </SafeModal>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 0, paddingTop: 12, backgroundColor: '#f4f7fb' },
+  scrollContainer: { padding: 2, paddingBottom: 40 },
+  formWrapper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 28,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e3e8ee',
+  },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   headerCentered: { justifyContent: 'center' },
   title: { fontSize: 22, fontWeight: '900', textAlign: 'center', color: '#0b1320' },
@@ -127,6 +194,12 @@ const styles = StyleSheet.create({
   rolesWrap: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   roleChip: { backgroundColor: '#f0f6ff', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, marginLeft: 8 },
   roleChipText: { color: '#0b60d9', fontWeight: '700' },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  ...cardStyles,
 });
 
 const modalStyles = StyleSheet.create({

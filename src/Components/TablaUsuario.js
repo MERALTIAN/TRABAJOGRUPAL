@@ -18,7 +18,7 @@ const TablaUsuario = ({ usuarios = [], eliminarUsuario = () => {}, editarUsuario
               <View key={u.id} style={[styles.row, { maxWidth: cardMax }]}>
                 <View style={styles.rowContent}>
                   <View style={styles.textBlock}>
-                    <Text style={styles.name} numberOfLines={1}>{u.Nombre ? `${u.Nombre} ${u.Apellido || ''}`.trim() : (u.email || u.id)}</Text>
+                    <Text style={styles.name} numberOfLines={1}>{u.Nombre ? `${u.Nombre} ${u.Apellido || ''}`.trim() : (u.Usuario || u.email || u.id)}</Text>
                     <Text style={styles.meta}>{u.rol || u.Rol || 'N/A'}</Text>
                   </View>
                   <TouchableOpacity style={styles.moreBtn} onPress={() => {
@@ -28,7 +28,7 @@ const TablaUsuario = ({ usuarios = [], eliminarUsuario = () => {}, editarUsuario
                       { text: 'Cancelar', style: 'cancel' }
                     ]);
                   }}>
-                    <MaterialIcons name="more-vert" size={22} color="#666" />
+                    <MaterialIcons name="more-vert" size={22} color="#6B7280" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -68,19 +68,18 @@ const TablaUsuario = ({ usuarios = [], eliminarUsuario = () => {}, editarUsuario
 };
 
 const styles = StyleSheet.create({
-  container: { padding: 8, alignItems: 'stretch' },
-  title: { fontSize: 20, fontWeight: '800', marginBottom: 10, color: '#0b1320' },
-  listTitle: { textAlign: 'center', width: '100%', marginBottom: 12 },
+  container: { padding: 12, alignItems: 'center', width: '100%' },
+  title: { fontSize: 22, fontWeight: '800', marginBottom: 14, color: '#0b1320' },
+  listTitle: { textAlign: 'center', width: '100%', marginBottom: 6 },
   list: { paddingBottom: 30, width: '100%' },
   empty: { color: '#666', padding: 8 },
-    row: { flexDirection: 'column', alignItems: 'stretch', backgroundColor: '#fff', padding: 14, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#eef0f2', width: '100%', maxWidth: 560 },
+  row: { backgroundColor: '#fff', padding: 16, borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: '#e3e8ee', width: '100%', maxWidth: 560, shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 3 },
   rowContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    rowContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6 },
-    textBlock: { flex: 1, paddingRight: 8 },
-  name: { fontWeight: '800', fontSize: 16, color: '#0b1320' },
-  meta: { color: '#7a8a95', marginTop: 6, fontSize: 13 },
+  textBlock: { flex: 1, paddingRight: 8 },
+  name: { fontWeight: '800', fontSize: 18, color: '#12323b' },
+  meta: { color: '#6b7280', marginTop: 6, fontSize: 13 },
   roleText: { color: '#2563eb', fontWeight: '700' },
-  moreBtn: { marginLeft: 12, alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff' },
+  moreBtn: { marginLeft: 12, alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 20, backgroundColor: '#f7f8f8' },
 });
 
 export default TablaUsuario;

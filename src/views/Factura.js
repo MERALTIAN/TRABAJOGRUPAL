@@ -1,13 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+} from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, doc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioFactura from "../Components/FormularioFactura.js";
-import TablaFactura from "../Components/TablaFactura.js";
+import { cardStyles } from "../Styles/cardStyles.js";
+import Feather from '@expo/vector-icons/Feather';
 
 const Factura = () => {
   const [facturas, setFacturas] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
 
   const cargarDatos = async () => {
     try {
@@ -34,7 +45,62 @@ const Factura = () => {
 
   useEffect(() => {
     cargarDatos();
+    // LayoutAnimation enabling on Android is a no-op in the new RN architecture.
+    // Skipping UIManager.setLayoutAnimationEnabledExperimental to avoid noisy warnings.
   }, []);
+  // Render de cada factura como tarjeta (estilo Ejemplo)
+  const renderFacturaCard = (factura) => {
+    const isExpanded = expandedId === factura.id;
+    const title = factura.Contrato ? `Contrato: ${factura.Contrato}` : `Factura ID: ${factura.id?.substring(0,6) || ''}...`;
+
+    return (
+      <View key={factura.id} style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{title}</Text>
+          <TouchableOpacity
+            style={styles.ellipsisButton}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setExpandedId(isExpanded ? null : factura.id);
+            }}
+          >
+            <Feather name="more-vertical" size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        {isExpanded && (
+          <View style={styles.expandedDetailsContainer}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Agente:</Text>
+              <Text style={styles.detailValue}>{factura.Agente}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Monto:</Text>
+              <Text style={styles.detailValue}>C$ {factura.Monto_Decimal}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Cuotas:</Text>
+              <Text style={styles.detailValue}>{factura.cuotas}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>ID Documento:</Text>
+              <Text style={styles.detailValue}>{factura.id}</Text>
+            </View>
+
+            <View style={styles.cardActionRow}>
+              <TouchableOpacity
+                style={[styles.cardButton, styles.deleteButton]}
+                onPress={() => { eliminarFactura(factura.id); }}
+              >
+                <Feather name="trash-2" size={16} color="#fff" />
+                <Text style={[styles.cardButtonText, styles.deleteButtonText]}>Eliminar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -45,13 +111,9 @@ const Factura = () => {
           <FormularioFactura cargarDatos={cargarDatos} />
         </View>
 
-        {/* 🔹 Tarjeta de la tabla */}
-        <View style={styles.tableWrapper}>
-          <TablaFactura
-            facturas={facturas}
-            eliminarFactura={eliminarFactura}
-          />
-        </View>
+        <Text style={[styles.title, { marginBottom: 16, marginTop: -10 }]}>Lista de facturas</Text>
+
+        {facturas.map(renderFacturaCard)}
 
       </ScrollView>
     </View>
@@ -60,35 +122,35 @@ const Factura = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     flex: 1,
-    backgroundColor: "#f6f8fa",
+    backgroundColor: "#fff",
   },
   scrollContainer: {
-    padding: 1, // 🔸 Espacio libre en los lados
-    paddingBottom: 40,     // Espacio inferior
+    padding: 2,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#444444",
+    textAlign: "center",
+    marginBottom: 5,
   },
   formWrapper: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 20,
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 28,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#e3e8ee",
   },
-  tableWrapper: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 30,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
-    elevation: 2,
-  },
+  ...cardStyles,
 });
 
 export default Factura;

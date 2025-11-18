@@ -7,7 +7,6 @@ const screenWidth = Dimensions.get('window').width;
 const TablaServicio = ({ servicios, eliminarServicio, editarServicio }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>GESTIÓN DE SERVICIOS</Text>
       {servicios.map((servicio) => (
         <View key={servicio.id} style={styles.card}>
           <View style={styles.cardHeader}>
@@ -61,20 +60,18 @@ const TablaServicio = ({ servicios, eliminarServicio, editarServicio }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 20,
-    backgroundColor: '#f5f7fa', flex: 1,
+    flex: 1,
     alignItems: 'center',
     backgroundColor: '#fefefeff',
     paddingHorizontal: 16,
     paddingVertical: 20,
   },
   titulo: {
-    fontSize: 28,
-    fontWeight: "400",
-    marginBottom: 25,
-    textAlign: "center",
-    width: screenWidth - 40,
-    marginTop: 8,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#444',
   },
   card: {
     backgroundColor: "#fff",

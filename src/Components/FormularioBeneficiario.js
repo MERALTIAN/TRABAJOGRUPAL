@@ -72,10 +72,18 @@ const FormularioBeneficiario = ({ cargarDatos }) => {
         placeholder="Cédula"
         value={cedula}
         onChangeText={(text) => {
-          let v = text.toUpperCase();
-          v = v.replace(/[^0-9A-Z-]/g, '');
-          if (v.length > 16) v = v.slice(0, 16);
-          setCedula(v);
+          // auto-mask cédula as user types
+          let s = String(text || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+          if (!s) { setCedula(''); return; }
+          if (s.length > 14) s = s.slice(0, 14);
+          const a = s.slice(0, 3);
+          const b = s.slice(3, 9);
+          const c = s.slice(9, 13);
+          const d = s.slice(13, 14);
+          let out = a;
+          if (b) out += '-' + b;
+          if (c) out += '-' + c + d;
+          setCedula(out);
         }}
         onBlur={() => { const f = formatCedula(cedula); setCedula(f); }}
       />

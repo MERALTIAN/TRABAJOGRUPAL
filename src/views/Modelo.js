@@ -1,11 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  Image,
+} from "react-native";
 import { db } from "../database/firebaseconfig.js";
-import { collection, getDocs, doc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { safeDeleteDoc } from '../utils/firestoreUtils';
 import FormularioModelo from "../Components/FormularioModelo.js";
-import TablaModelo from "../Components/TablaModelo.js";
 import ModalEditar from "../Components/ModalEditar.js";
+import { cardStyles } from "../Styles/cardStyles.js";
+import Feather from '@expo/vector-icons/Feather';
 
 const Modelo = () => {
   const [modelos, setModelos] = useState([]);
@@ -56,24 +67,93 @@ const Modelo = () => {
 
   useEffect(() => {
     cargarDatos();
+    // LayoutAnimation enabling on Android is a no-op in the new RN architecture.
+    // Skipping UIManager.setLayoutAnimationEnabledExperimental to avoid noisy warnings.
   }, []);
+  // Función para renderizar cada tarjeta de modelo (diseño como en Ejemplo)
+  const [expandedId, setExpandedId] = useState(null);
+
+  const renderModeloCard = (modelo) => {
+    const isExpanded = expandedId === modelo.id;
+    const imageSource = modelo.Imagen ? { uri: modelo.Imagen } : null;
+
+    return (
+      <View key={modelo.id} style={styles.card}>
+        {imageSource ? (
+          <Image source={imageSource} style={styles.cardImage} resizeMode="cover" />
+        ) : (
+          <View style={styles.cardImagePlaceholder}>
+            <Feather name="package" size={48} color="#9CA3AF" />
+          </View>
+        )}
+
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>{modelo.Nombre || modelo.Modelo}</Text>
+          <TouchableOpacity
+            style={styles.ellipsisButton}
+            onPress={() => {
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+              setExpandedId(isExpanded ? null : modelo.id);
+            }}
+          >
+            <Feather name="more-vertical" size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        {isExpanded && (
+          <View style={styles.expandedDetailsContainer}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Modelo:</Text>
+              <Text style={styles.detailValue}>{modelo.Modelo}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Color:</Text>
+              <Text style={styles.detailValue}>{modelo.Color}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Medida:</Text>
+              <Text style={styles.detailValue}>{modelo.Medida}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Precio:</Text>
+              <Text style={styles.detailValue}>{modelo.Precio || ''}</Text>
+            </View>
+
+            <View style={styles.cardActionRow}>
+              <TouchableOpacity
+                style={[styles.cardButton, styles.deleteButton]}
+                onPress={() => eliminarModelo(modelo.id)}
+              >
+                <Feather name="trash-2" size={16} color="#fff" />
+                <Text style={[styles.cardButtonText, styles.deleteButtonText]}>Eliminar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cardButton, styles.editButton]}
+                onPress={() => editarModelo(modelo)}
+              >
+                <Feather name="edit-2" size={16} color="#fff" />
+                <Text style={[styles.cardButtonText, styles.editButtonText]}>Editar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>Gestión de Modelos</Text>
-
         {/* Contenedor visual elegante solo para el formulario */}
         <View style={styles.formWrapper}>
           <FormularioModelo cargarDatos={cargarDatos} />
         </View>
 
-        {/* Tabla fuera del contenedor */}
-        <TablaModelo 
-          modelos={modelos} 
-          eliminarModelo={eliminarModelo}
-          editarModelo={editarModelo}
-        />
+        <Text style={[styles.title, { marginBottom: 16, marginTop: -10 }]}>Lista de modelos</Text>
+
+        {/* Mapeo de modelos a tarjetas */}
+        {modelos.map(renderModeloCard)}
+
       </ScrollView>
 
       <ModalEditar
@@ -91,24 +171,26 @@ const Modelo = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     flex: 1,
-    backgroundColor: "#f6f8fa",
+    backgroundColor: "#fff",
   },
   scrollContainer: {
-    padding: 0,
+    padding: 2,
     paddingBottom: 40,
+    paddingTop: 30,
   },
   title: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "900",
-    color: "#12323b",
+    color: "#444444",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: 5,
   },
   formWrapper: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    padding: 20,
+    padding: 15,
     marginBottom: 28,
     shadowColor: "#000",
     shadowOpacity: 0.08,
@@ -118,6 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e3e8ee",
   },
+  ...cardStyles,
 });
 
 export default Modelo;

@@ -6,6 +6,7 @@ import { safeUpdateDoc } from '../utils/firestoreUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
 import FormularioSolicitudAdmin from '../Components/FormularioSolicitudAdmin';
+import solicitudesStyles from '../Styles/solicitudesStyles';
 
 const Solicitudes = () => {
   const [solicitudes, setSolicitudes] = useState([]);
@@ -257,96 +258,6 @@ const Solicitudes = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: '#f0f2f5',
-  },
-  /* new card styles */
-  card: { backgroundColor: '#fff', padding: 14, marginVertical: 8, borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  leftBlock: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  rightBlock: { alignItems: 'flex-end', marginLeft: 8 },
-  avatarCircleNew: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0b60d9', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '800' },
-  cardTitle: { fontSize: 17, fontWeight: '800', color: '#12323b' },
-  cardMeta: { fontSize: 13, color: '#666', marginTop: 4 },
-  itemTitle: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 5,
-    color: '#0056b3',
-  },
-  detailsGroup: {
-    paddingLeft: 5,
-    marginBottom: 10,
-  },
-  itemDetail: {
-    fontSize: 14,
-    color: '#555',
-    marginTop: 4,
-  },
-  commentContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#f0f8ff',
-    borderRadius: 6,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007bff',
-  },
-  commentTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 4,
-  },
-  commentText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: '#333',
-  },
-  cardActions: { flexDirection: 'row', marginTop: 12, justifyContent: 'flex-end' },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#2fb26b', marginLeft: 8 },
-  rejectAction: { backgroundColor: '#e05252' },
-  actionBtnText: { color: '#fff', fontWeight: '700', marginLeft: 8 },
-  statusPillNew: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, fontWeight: '700' },
-  cardDate: { fontSize: 12, color: '#666', marginTop: 6 },
-  footer: {
-    marginTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f2f5',
-    paddingTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  date: {
-    fontSize: 12,
-    color: '#666',
-  },
-  actionsRow: { flexDirection: 'row', alignItems: 'center' },
-  approveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2fb26b', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginRight: 10, minWidth: 120, shadowColor: '#2fb26b', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 4 },
-  rejectBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e05252', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, minWidth: 120, shadowColor: '#e05252', shadowOpacity: 0.12, shadowOffset: { width: 0, height: 4 }, shadowRadius: 8, elevation: 4 },
-  actionText: { color: '#fff', fontWeight: '700', marginLeft: 8, fontSize: 15 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  avatarCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#007bff', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  statusPending: { backgroundColor: '#fff3cd' },
-  statusApproved: { backgroundColor: '#d4edda' },
-  statusRejected: { backgroundColor: '#f8d7da' },
-  statusText: { fontWeight: '700', color: '#333' },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    fontSize: 16,
-    color: '#888',
-    paddingHorizontal: 20,
-  },
-});
+const styles = solicitudesStyles;
 
 export default Solicitudes;

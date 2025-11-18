@@ -32,6 +32,7 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
   const [isAgentView, setIsAgentView] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
   const [payModalVisible, setPayModalVisible] = useState(false);
+  const [selectedModalType, setSelectedModalType] = useState('details'); // 'details' | 'payments'
   const [payCuota, setPayCuota] = useState('');
   // agent will input number of cuotas only; monto will be computed automatically
   const [paymentsLog, setPaymentsLog] = useState({}); // contractId -> [payments]
@@ -252,8 +253,11 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
       <Text style={[styles.rowText, { fontWeight: '800', marginTop: 6 }]}>Monto actual: {formatMoney(item.Monto)}</Text>
 
       <View style={{ flexDirection: 'row', marginTop: 10 }}>
-        <TouchableOpacity style={styles.detailBtn} onPress={() => { setSelectedContract(item); loadPaymentsFor(item.id); }}>
+        <TouchableOpacity style={styles.detailBtn} onPress={() => { setSelectedContract(item); setSelectedModalType('details'); loadPaymentsFor(item.id); }}>
           <Text style={styles.detailBtnText}>Detalles</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.detailBtn, { marginLeft: 8 }]} onPress={() => { setSelectedContract(item); setSelectedModalType('payments'); loadPaymentsFor(item.id); }}>
+          <Text style={styles.detailBtnText}>Pagos registrados</Text>
         </TouchableOpacity>
         {isAgentView && (
           <TouchableOpacity style={[styles.detailBtn, { backgroundColor: '#2fb26b', marginLeft: 8 }]} onPress={() => openPayModal(item)}>
@@ -293,36 +297,60 @@ const AccesoContrato = ({ user: propUser, onLogout }) => {
             <FlatList data={resultados} keyExtractor={i => i.id} renderItem={renderContractCard} contentContainerStyle={{ paddingBottom: 40 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled" />
           )}
 
-          {/* Detalles modal */}
+          {/* Detalles / Pagos modal (separados) */}
           <SafeModal visible={!!selectedContract} animationType="slide" transparent onRequestClose={() => setSelectedContract(null)}>
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
-                <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6 }}>Detalles del contrato</Text>
+                <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 6 }}>{selectedModalType === 'payments' ? 'Pagos registrados' : 'Detalles del contrato'}</Text>
                 {selectedContract ? (
                   <ScrollView>
-                    <Text style={styles.rowText}>ID: {formatField(selectedContract.id)}</Text>
-                    <Text style={styles.rowText}>Cliente: {formatField(selectedContract.Cliente || selectedContract.ClienteId || selectedContract.ClienteID)}</Text>
-                    <Text style={styles.rowText}>Monto actual: {formatField(selectedContract.Monto)}</Text>
-                    <Text style={styles.rowText}>Cuotas restantes: {formatField(selectedContract.Cuotas)}</Text>
-                    {paymentsLog[selectedContract.id] && paymentsLog[selectedContract.id].length > 0 ? (
-                      <View style={{ marginTop: 8 }}>
-                        <Text style={{ fontWeight: '700', marginBottom: 6 }}>Pagos registrados</Text>
-                        <View style={styles.paymentsHeader}>
-                          <Text style={[styles.paymentsCell, { flex: 2, fontWeight: '700' }]}>Fecha</Text>
-                          <Text style={[styles.paymentsCell, { flex: 2, fontWeight: '700' }]}>Agente</Text>
-                          <Text style={[styles.paymentsCell, { flex: 1, fontWeight: '700', textAlign: 'center' }]}>Cuota</Text>
-                          <Text style={[styles.paymentsCell, { flex: 1, fontWeight: '700', textAlign: 'right' }]}>Monto</Text>
-                        </View>
-                        {paymentsLog[selectedContract.id].map((p, idx) => (
-                          <View key={p.id || idx} style={styles.paymentRow}>
-                            <Text style={[styles.paymentsCell, { flex: 2 }]}>{formatField(p.fecha)}</Text>
-                            <Text style={[styles.paymentsCell, { flex: 2 }]}>{formatField(p.agenteNombre || p.agente)}</Text>
-                            <Text style={[styles.paymentsCell, { flex: 1, textAlign: 'center' }]}>{formatField(p.cuota)}</Text>
-                            <Text style={[styles.paymentsCell, { flex: 1, textAlign: 'right' }]}>{formatField(p.monto || p.monto_pagado || p.Monto || p.monto_pagado)}</Text>
+                    {selectedModalType === 'details' && (
+                      <>
+                        {/* Mostrar items (servicios/modelos) también en Detalles */}
+                        {Array.isArray(selectedContract.Items) && selectedContract.Items.length > 0 ? (
+                          <View style={{ marginBottom: 12 }}>
+                            <Text style={{ fontWeight: '700', marginBottom: 8 }}>Servicios/Modelos en este contrato</Text>
+                            {selectedContract.Items.map((it, idx) => (
+                              <View key={idx} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' }}>
+                                <Text style={{ fontSize: 15, fontWeight: '700', color: '#12323b' }}>{it.nombre || it.Nombre || it.Modelo || it.id}</Text>
+                                <Text style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{(it.tipo || '').toString()} • C$ {it.precio ?? '-'}</Text>
+                              </View>
+                            ))}
                           </View>
-                        ))}
-                      </View>
-                    ) : <Text style={{ marginTop: 8, color: '#666' }}>No hay pagos registrados aún.</Text>}
+                        ) : (
+                          <Text style={{ marginBottom: 8, color: '#666' }}>No hay servicios/modelos asociados a este contrato.</Text>
+                        )}
+
+                        <Text style={styles.rowText}>ID: {formatField(selectedContract.id)}</Text>
+                        <Text style={styles.rowText}>Cliente: {formatField(selectedContract.Cliente || selectedContract.ClienteId || selectedContract.ClienteID)}</Text>
+                        <Text style={styles.rowText}>Monto actual: {formatField(selectedContract.Monto)}</Text>
+                        <Text style={styles.rowText}>Cuotas totales: {formatField(selectedContract.Cuotas)}</Text>
+                        <Text style={styles.rowText}>Cuotas restantes: {formatField(selectedContract.CuotasRestantes ?? selectedContract.Cuotas)}</Text>
+                      </>
+                    )}
+
+                    {selectedModalType === 'payments' && (
+                      (paymentsLog[selectedContract.id] && paymentsLog[selectedContract.id].length > 0) ? (
+                        <View style={{ marginTop: 8 }}>
+                          <View style={styles.paymentsHeader}>
+                            <Text style={[styles.paymentsCell, { flex: 2, fontWeight: '700' }]}>Fecha</Text>
+                            <Text style={[styles.paymentsCell, { flex: 2, fontWeight: '700' }]}>Agente</Text>
+                            <Text style={[styles.paymentsCell, { flex: 1, fontWeight: '700', textAlign: 'center' }]}>Cuota</Text>
+                            <Text style={[styles.paymentsCell, { flex: 1, fontWeight: '700', textAlign: 'right' }]}>Monto</Text>
+                          </View>
+                          {paymentsLog[selectedContract.id].map((p, idx) => (
+                            <View key={p.id || idx} style={styles.paymentRow}>
+                              <Text style={[styles.paymentsCell, { flex: 2 }]}>{formatField(p.fecha)}</Text>
+                              <Text style={[styles.paymentsCell, { flex: 2 }]}>{formatField(p.agenteNombre || p.agente)}</Text>
+                              <Text style={[styles.paymentsCell, { flex: 1, textAlign: 'center' }]}>{formatField(p.cuota)}</Text>
+                              <Text style={[styles.paymentsCell, { flex: 1, textAlign: 'right' }]}>{formatField(p.monto || p.monto_pagado || p.Monto || p.monto_pagado)}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={{ marginTop: 8, color: '#666' }}>No hay pagos registrados aún.</Text>
+                      )
+                    )}
                   </ScrollView>
                 ) : null}
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 }}>

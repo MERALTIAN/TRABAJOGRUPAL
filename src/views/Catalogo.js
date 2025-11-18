@@ -13,27 +13,12 @@ import {
 import SafeModal from '../Components/SafeModal';
 import formatField from '../utils/formatField';
 import { db } from "../database/firebaseconfig.js";
-import { collection, onSnapshot, getDocs, query, where } from "firebase/firestore";
-import { safeUpdateDoc } from '../utils/firestoreUtils';
+import { collection, onSnapshot, getDocs, query, where, addDoc, doc, getDoc } from "firebase/firestore";
+import { safeUpdateDoc, safeDeleteDoc } from '../utils/firestoreUtils.js';
+import catalogoStyles from "../Styles/catalogoStyles.js";
+import { cardStyles } from "../Styles/cardStyles.js";
+import { Feather } from '@expo/vector-icons';
 
-/**
- * Cambio visual completo (manteniendo la lógica):
- * - Tabs superiores (Ataúdes / Servicios)
- * - Tarjetas modernas con imagen, título, descripción corta, precio y acciones
- * - Modal grande estilo "ventana web" con imagen grande, características y caja de precio
- * - Animación simple con LayoutAnimation al cambiar tab
- * - Iconos con emoji (compatibles sin dependencias). Si querés iconos vectoriales instalamos react-native-vector-icons.
- *
- * NO se modificó: listeners de Firestore, estructura de payload, ni guardarEnContrato.
- */
-
-// Nota: en la Nueva Arquitectura de RN la llamada a
-// UIManager.setLayoutAnimationEnabledExperimental es un no-op y lanza un warning.
-// Para evitar ese warning lo comentamos. Si usas una versión antigua de RN
-// y quieres habilitarlo, puedes descomentar la siguiente línea.
-// if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-//   UIManager.setLayoutAnimationEnabledExperimental(true);
-// }
 
 const formatoDinero = (v) => {
   const n = Number(v || 0);
@@ -63,21 +48,44 @@ const CardItem = ({ item, onDetails, onSave, type }) => {
       </TouchableOpacity>
 
       <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{item.Nombre || "Sin título"}</Text>
-        <Text style={styles.cardDescription}>{descripcion}</Text>
-        <Text style={styles.cardPrice}>{formatoDinero(item.Precio)}</Text>
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={() => onSave(item)}
-        >
-          <Text style={styles.saveButtonText}>Guardar</Text>
-        </TouchableOpacity>
+        <View style={styles.cardHead}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {item.Nombre || item.Modelo}
+          </Text>
+          <Text style={styles.cardPriceSmall}>{formatoDinero(item.Precio || item.Monto)}</Text>
+        </View>
+
+        <Text style={styles.cardDescription} numberOfLines={3}>
+          {descripcion}
+        </Text>
+
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={styles.detailBtn}
+            activeOpacity={0.85}
+            onPress={() => onDetails({ tipo: type, data: item })}
+          >
+            <Text style={styles.detailBtnText}>Ver detalles</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.saveBtn}
+            activeOpacity={0.85}
+            onPress={() => onSave(item, type)}
+          >
+                <Feather name="save" size={16} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 };
 
 export default function Catalogo({ user }) {
+  const [contratos, setContratos] = useState([]);
+  const [contratoPickerVisible, setContratoPickerVisible] = useState(false);
+  const [pendingItem, setPendingItem] = useState(null);
+  const [pendingTipo, setPendingTipo] = useState(null);
   const [servicios, setServicios] = useState([]);
   const [modelos, setModelos] = useState([]);
   const [detalle, setDetalle] = useState(null);
@@ -118,67 +126,37 @@ export default function Catalogo({ user }) {
       if (!user || user.rol === "Invitado") {
         return alert("Debes iniciar sesión como cliente para guardar en un contrato.");
       }
-      const price = Number(item.Monto ?? item.Precio ?? 0) || 0;
-      const clientId = user.clientId || user.id || null;
 
-      // Buscar contrato abierto del cliente (Estado distinto de 'Pagado'). Si no existe, crear uno nuevo.
-      let existing = null;
+      // Find the client ID from the 'Cliente' collection using the user's ID
+      let clientId = null;
+      if (user.id) {
+        const qCliente = query(collection(db, 'Cliente'), where('UsuarioId', '==', user.id));
+        const snapCliente = await getDocs(qCliente);
+        if (!snapCliente.empty) {
+          clientId = snapCliente.docs[0].id;
+        }
+      }
+
+      const price = Number(item.Monto ?? item.Precio ?? 0) || 0;
+
+      // Buscar todos los contratos del cliente y mostrar selector siempre
+      let contratosCliente = [];
       if (clientId) {
         try {
           const q = query(collection(db, 'Contrato'), where('ClienteId', '==', clientId));
           const snap = await getDocs(q);
-          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          existing = docs.find(d => !(d.Estado || '').toString().toLowerCase().includes('pag')) || null;
+          contratosCliente = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) {
-          console.error('Error buscando contratos existentes del cliente:', e);
+          console.error('Error buscando contratos del cliente:', e);
         }
       }
 
-      if (existing) {
-        // Actualizar contrato existente: sumar monto y agregar item al listado
-        try {
-          const newMonto = (Number(existing.Monto || 0) || 0) + price;
-          // recalcular cuota: 5% del total
-          const cuotaPorUnidad = Math.round(newMonto * 0.05) || newMonto;
-          const cuotas = Math.max(1, Math.ceil(newMonto / cuotaPorUnidad));
-          const updatedItems = Array.isArray(existing.Items) ? [...existing.Items] : [];
-          updatedItems.push({ id: item.id, tipo, nombre: item.Nombre || item.Modelo || '', precio: price });
-          const updateObj = { Monto: newMonto, Items: updatedItems, CuotaMonto: cuotaPorUnidad, Cuotas: cuotas, CuotasRestantes: cuotas };
-          await safeUpdateDoc('Contrato', existing.id, updateObj);
-          alert('Contrato actualizado: monto y items sumados correctamente.');
-        } catch (e) {
-          console.error('Error actualizando contrato existente:', e);
-          alert('Error al actualizar el contrato.');
-        }
-      } else {
-        // Crear nuevo contrato con el item
-        try {
-          const payload = {
-            ClienteId: clientId,
-            Fecha_Inicio: new Date().toISOString().slice(0,10),
-            Monto: price,
-            Estado: 'Pendiente',
-            Items: [{ id: item.id, tipo, nombre: item.Nombre || item.Modelo || '', precio: price }],
-            CuotaMonto: Math.round(price * 0.05) || price,
-            Cuotas: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price))),
-            CuotasRestantes: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price)))
-          };
-          const { addDoc, collection } = await import("firebase/firestore");
-          await addDoc(collection(db, "Contrato"), payload);
-          alert("Guardado en contrato correctamente.");
-        } catch (err) {
-          console.error('Error creando nuevo contrato desde catálogo:', err);
-          alert('Error al crear contrato.');
-        }
-      }
-
-      // marcar como usado en el catálogo (usado:true) para preservar historial
-      try {
-        const col = tipo === 'servicio' ? 'Servicio' : 'Modelo';
-        await safeUpdateDoc(col, item.id, { usado: true });
-      } catch (e) {
-        console.error('No se pudo marcar item como usado en el catálogo:', e);
-      }
+      // Mostrar modal con todos los contratos (si no tiene, el modal permitirá crear uno nuevo)
+      setContratos(contratosCliente);
+      setPendingItem(item);
+      setPendingTipo(tipo);
+      setContratoPickerVisible(true);
+      return;
     } catch (err) {
       console.error("Error guardando en contrato", err);
       alert("Error al guardar");
@@ -195,6 +173,88 @@ export default function Catalogo({ user }) {
       console.warn('LayoutAnimation not available:', e);
     }
     setTab(t);
+  };
+
+  const createNewContractFromPending = async () => {
+    try {
+      if (!pendingItem) return;
+      // Try to resolve clientId again (in case user data changed)
+      let clientId = null;
+      if (user && user.id) {
+        const qCliente = query(collection(db, 'Cliente'), where('UsuarioId', '==', user.id));
+        const snapCliente = await getDocs(qCliente);
+        if (!snapCliente.empty) clientId = snapCliente.docs[0].id;
+      }
+      const price = Number(pendingItem.Monto ?? pendingItem.Precio ?? 0) || 0;
+      const payload = {
+        ClienteId: clientId,
+        Fecha_Inicio: new Date().toISOString().slice(0,10),
+        Monto: price,
+        Estado: 'Pendiente',
+        Items: [{ id: pendingItem.id, tipo: pendingTipo, nombre: pendingItem.Nombre || pendingItem.Modelo || '', precio: price }],
+        CuotaMonto: Math.round(price * 0.05) || price,
+        Cuotas: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price))),
+        CuotasRestantes: Math.max(1, Math.ceil(price / (Math.round(price * 0.05) || price)))
+      };
+      const ref = await addDoc(collection(db, "Contrato"), payload);
+      // borrar item del catálogo
+      try {
+        const col = pendingTipo === 'servicio' ? 'Servicio' : 'Modelo';
+        await safeDeleteDoc(col, pendingItem.id);
+      } catch (e) {
+        console.error('No se pudo borrar item del catálogo tras crear contrato:', e);
+      }
+      alert('Contrato creado y artículo guardado correctamente.');
+    } catch (e) {
+      console.error('Error creando contrato desde modal:', e);
+      alert('Error al crear contrato.');
+    } finally {
+      setContratoPickerVisible(false);
+      setPendingItem(null);
+      setPendingTipo(null);
+      setContratos([]);
+    }
+  };
+
+  // addToContract already exists below; ensure it's hoisted: (it is declared later)
+
+  const addToContract = async (contractId, item, tipo) => {
+    try {
+      if (!contractId) return;
+      const docRef = doc(db, 'Contrato', contractId);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) {
+        alert('Contrato no encontrado');
+        return;
+      }
+      const existing = { id: snap.id, ...snap.data() };
+      const price = Number(item.Monto ?? item.Precio ?? 0) || 0;
+      const newMonto = (Number(existing.Monto || 0) || 0) + price;
+      const cuotaPorUnidad = Math.round(newMonto * 0.05) || newMonto;
+      const cuotas = Math.max(1, Math.ceil(newMonto / cuotaPorUnidad));
+      const updatedItems = Array.isArray(existing.Items) ? [...existing.Items] : [];
+      updatedItems.push({ id: item.id, tipo, nombre: item.Nombre || item.Modelo || '', precio: price });
+      const updateObj = { Monto: newMonto, Items: updatedItems, CuotaMonto: cuotaPorUnidad, Cuotas: cuotas, CuotasRestantes: cuotas };
+      await safeUpdateDoc('Contrato', contractId, updateObj);
+
+      // borrar item del catálogo después de guardar
+      try {
+        const col = tipo === 'servicio' ? 'Servicio' : 'Modelo';
+        await safeDeleteDoc(col, item.id);
+      } catch (e) {
+        console.error('No se pudo borrar item del catálogo:', e);
+      }
+
+      alert('Contrato actualizado y artículo guardado correctamente.');
+    } catch (e) {
+      console.error('addToContract error', e);
+      alert('Error al guardar en el contrato seleccionado');
+    } finally {
+      setContratoPickerVisible(false);
+      setPendingItem(null);
+      setPendingTipo(null);
+      setContratos([]);
+    }
   };
 
   // Render del modal con detalles
@@ -325,180 +385,56 @@ export default function Catalogo({ user }) {
       )}
 
       {renderDetalle()}
+      {/* Modal picker para seleccionar contrato cuando el cliente tiene varios (o ninguno) */}
+      <SafeModal visible={contratoPickerVisible} animationType="slide" transparent onRequestClose={() => setContratoPickerVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { width: Math.min(720, width - 24) }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecciona el contrato</Text>
+              <TouchableOpacity onPress={() => setContratoPickerVisible(false)} style={styles.modalClose}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalContent}>
+              <ScrollView>
+                {contratos && contratos.length > 0 ? (
+                  contratos.map((c) => (
+                    <TouchableOpacity key={c.id} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }} onPress={() => addToContract(c.id, pendingItem, pendingTipo)}>
+                      <Text style={{ fontWeight: '700' }}>{c.Cliente || c.ClienteNombre || c.ClienteId || ('Contrato ' + c.id)}</Text>
+                      <Text>Estado: {String(c.Estado || c.estado || 'Pendiente')}</Text>
+                      <Text>Inicio: {String(c.Fecha_Inicio || c.FechaInicio || '').slice(0,10)}</Text>
+                      <Text>Monto: C$ {c.Monto ?? '-'}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={{ padding: 12 }}>
+                    <Text style={{ marginBottom: 12 }}>No se encontraron contratos para este cliente.</Text>
+                    <TouchableOpacity style={[styles.modalSave, { alignSelf: 'flex-start' }]} onPress={createNewContractFromPending}>
+                      <Text style={styles.modalSaveText}>Crear nuevo contrato y guardar</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </ScrollView>
+            </View>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setContratoPickerVisible(false)}>
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalCancel, { backgroundColor: '#007bff' }]} onPress={createNewContractFromPending}>
+                <Text style={[styles.modalCancelText, { color: '#fff' }]}>Crear nuevo contrato</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </SafeModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  app: { flex: 1, backgroundColor: "#f4f7fb" },
-
-  header: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: "#f4f7fb",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eef1f4",
-  },
-  headerInner: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  tab: {
-    minWidth: 120,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-    marginHorizontal: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  tabActive: {
-    backgroundColor: "#203248",
-    borderColor: "#203248",
-  },
-  tabInactive: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e6e9ee",
-  },
-  tabText: {
-    color: "#374151",
-    fontWeight: "700",
-  },
-  tabTextActive: {
-    color: "#fff",
-  },
-
-  listContainer: {
-    padding: 12,
-    paddingBottom: 30,
-  },
-
-  // Card
-  card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    overflow: "hidden",
-    marginVertical: 10,
-    marginHorizontal: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  imageWrap: {
-    width: 120,
-    height: 120,
-    backgroundColor: "#eef3f8",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardImage: { width: "100%", height: "100%" },
-  cardImagePlaceholder: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: "#eef3f8",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  placeholderText: { color: "#9aa4b2", fontSize: 13 },
-
-  cardBody: { flex: 1, padding: 12, justifyContent: "space-between" },
-  cardHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  cardTitle: { fontSize: 16, fontWeight: "800", color: "#0b1320", flex: 1, marginRight: 8 },
-  cardPriceSmall: { color: "#2563eb", fontWeight: "800", fontSize: 13 },
-
-  cardDescription: { marginTop: 6, color: "#5b6370", fontSize: 13 },
-
-  cardActions: { flexDirection: "row", marginTop: 10, alignItems: "center", justifyContent: "space-between" },
-  detailBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e0e6eb",
-    backgroundColor: "#fff",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  detailBtnText: { fontWeight: "700", color: "#2b3946" },
-  saveBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
-    backgroundColor: "#eef3f8",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  saveBtnText: { fontSize: 18 },
-
-  // Empty
-  empty: { padding: 30, alignItems: "center" },
-  emptyText: { color: "#6b7280", fontSize: 14 },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.42)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 12,
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    overflow: "hidden",
-    maxHeight: "92%",
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  modalTitle: { flex: 1, fontSize: 20, fontWeight: "900", color: "#0b1320" },
-  modalClose: { padding: 6, borderRadius: 8 },
-  modalCloseText: { fontSize: 18, color: "#475569" },
-
-  modalImageWrap: { backgroundColor: "#203248", height: 200, width: "100%" },
-  modalImage: { width: "100%", height: "100%" },
-  modalImagePlaceholder: { backgroundColor: "#eef3f8", height: 200, alignItems: "center", justifyContent: "center" },
-
-  modalContent: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 8 },
-  modalDescription: { color: "#475569", fontSize: 15, marginBottom: 8 },
-
-  features: { marginTop: 6, marginBottom: 8 },
-  featuresTitle: { fontWeight: "800", marginBottom: 8, color: "#0b1320" },
-  featureItem: { flexDirection: "row", marginBottom: 6, alignItems: "flex-start" },
-  featureDot: { marginRight: 8, color: "#6b7280" },
-  featureText: { color: "#374151", flex: 1 },
-
-  pricePanel: { marginTop: 6, marginBottom: 6 },
-  priceLabel: { color: "#6b7280", fontSize: 12, marginBottom: 4 },
-  priceAmount: { fontWeight: "900", color: "#2563eb", fontSize: 20 },
-
-  modalFooter: { flexDirection: "row", padding: 12, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: "#eef1f4" },
-  modalCancel: {
-    flex: 1,
-    marginRight: 8,
-    backgroundColor: "#eef3f8",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalCancelText: { color: "#1f2937", fontWeight: "800" },
-  modalSave: {
-    flex: 1,
-    marginLeft: 8,
-    backgroundColor: "#203248",
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalSaveText: { color: "#fff", fontWeight: "900" },
+  ...catalogoStyles,
+  app: { ...catalogoStyles.app, flex: 1, backgroundColor: '#fff' },
+  ...cardStyles,
 });

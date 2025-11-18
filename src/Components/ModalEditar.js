@@ -11,6 +11,7 @@ import {
   Alert 
 } from "react-native";
 import UserAutocomplete from './UserAutocomplete';
+import { validateCedula, formatCedula } from '../utils/cedula';
 import { db } from "../database/firebaseconfig";
 import { safeUpdateDoc } from '../utils/firestoreUtils';
 import * as ImagePicker from 'expo-image-picker';
@@ -72,6 +73,16 @@ const ModalEditar = ({
   const handleSave = async () => {
     try {
       const dataToUpdate = { ...formData };
+      // If editing a Cedula field, validate & normalize before saving
+      if (dataToUpdate.Cedula !== undefined) {
+        const ced = String(dataToUpdate.Cedula || '').toUpperCase();
+        const formatted = formatCedula(ced);
+        if (!validateCedula(formatted)) {
+          Alert.alert('Cédula inválida', 'Formato esperado: 121-261204-1001F');
+          return;
+        }
+        dataToUpdate.Cedula = formatted;
+      }
       if (imagen) {
         dataToUpdate.Imagen = imagen;
       }
@@ -164,6 +175,24 @@ const ModalEditar = ({
     );
   };
 
+  // If the item contains an Items array (e.g., a Contrato), render a read-only list
+  const renderItemsList = () => {
+    if (!formData || !Array.isArray(formData.Items) || formData.Items.length === 0) return null;
+    return (
+      <View style={{ marginBottom: 12 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>Servicios/Modelos en este contrato</Text>
+        {formData.Items.map((it, idx) => (
+          <View key={idx} style={styles.itemRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.itemName}>{it.nombre || it.Nombre || it.Modelo || it.id}</Text>
+              <Text style={styles.itemMeta}>{(it.tipo || '').toString()} • C$ {it.precio ?? '-'}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -188,6 +217,8 @@ const ModalEditar = ({
             nestedScrollEnabled={true}
             renderItem={({ item }) => renderField(item)}
           />
+
+          {renderItemsList()}
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
@@ -306,6 +337,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  itemRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
+  itemName: { fontSize: 15, fontWeight: '700', color: '#12323b' },
+  itemMeta: { fontSize: 13, color: '#666', marginTop: 4 },
 });
 
 export default ModalEditar;

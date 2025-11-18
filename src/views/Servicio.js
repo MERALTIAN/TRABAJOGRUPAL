@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Text } from "react-native";
 import { db } from "../database/firebaseconfig.js";
 import { collection, getDocs, doc } from "firebase/firestore";
 import { safeDeleteDoc } from '../utils/firestoreUtils';
@@ -8,6 +8,7 @@ import TablaServicio from "../Components/TablaServicio.js";
 import ModalEditar from "../Components/ModalEditar.js"
 
 const Servicio = () => {
+  console.log('DEBUG: Servicio view loaded from Practica-de-firebase1/src/views/Servicio.js');
   const [servicios, setServicios] = useState([]);
   const [servicioEditar, setServicioEditar] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -62,6 +63,8 @@ const Servicio = () => {
           <FormularioServicio cargarDatos={cargarDatos} />
         </View>
 
+        <Text style={styles.title}>Lista de servicios (practica v1)</Text>
+
         <View style={styles.tableWrapper}>
           <TablaServicio 
             servicios={servicios} 
@@ -86,33 +89,37 @@ const Servicio = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     flex: 1,
-    backgroundColor: '#f6f8fa',
+    backgroundColor: '#ffffffff',
   },
   scrollContainer: {
-    padding: 1,
-    paddingBottom: 40, // espacio para que no quede pegado al bottom nav
+    padding: 2,
+    paddingBottom: 40,
+    paddingTop: 30,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#444444',
+    textAlign: 'center',
+    marginBottom: 5,
   },
   formWrapper: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 10,
-    marginBottom: 20,
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 28,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#e3e8ee',
   },
   tableWrapper: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 0,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
-    elevation: 2,
+    paddingHorizontal: 0,
   },
 });
 
