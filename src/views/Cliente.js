@@ -216,7 +216,11 @@ const Cliente = () => {
           <View style={styles.modalInner}>
             <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Usuarios (rol: Cliente)</Text>
             {/* compact list: ordered, small table-like picker */}
+<<<<<<< HEAD
             <UserRoleList role="Cliente" searchable={true} compact={true} compactMaxHeight={220} onSelect={(u) => { setSelectedUserForCliente(u); }} />
+=======
+            <UserRoleList role="Cliente" searchable={true} compact={true} compactMaxHeight={220} onSelect={(u) => { try { console.log('[Cliente] selected user (temp):', u && (u.id || u.Usuario || u.Nombre)); } catch(e){}; setSelectedUserForCliente(u); }} />
+>>>>>>> 5fbf38289c9abfae05a373607c2334a9a47b1674
 
             {/* show the selected user as a small record below the list */}
             {selectedUserForCliente ? (

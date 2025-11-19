@@ -196,7 +196,14 @@ const AgenteCobrador = () => {
       <SafeModal visible={userModalVisible} transparent animationType="slide" onRequestClose={() => { setUserModalVisible(false); setSelectedAgent(null); setSelectedUserForAgent(null); }}>
         <View style={styles.modalInner}>
           <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 8 }}>Usuarios (rol: Agente)</Text>
+<<<<<<< HEAD
           <UserRoleList role="Agente" searchable={true} compact={true} compactMaxHeight={220} onSelect={(u) => { setSelectedUserForAgent(u); }} />
+=======
+          <UserRoleList role="Agente" searchable={true} compact={true} compactMaxHeight={220} onSelect={(u) => {
+              try { console.log('[Agente] selected user (temp):', u && (u.id || u.Usuario || u.Nombre)); } catch(e){}
+              setSelectedUserForAgent(u);
+            }} />
+>>>>>>> 5fbf38289c9abfae05a373607c2334a9a47b1674
 
           {selectedUserForAgent ? (
             <View style={{ marginTop: 12, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#e6e9ee', backgroundColor: '#fff' }}>

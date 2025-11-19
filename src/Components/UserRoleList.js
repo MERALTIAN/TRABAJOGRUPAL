@@ -35,7 +35,12 @@ const UserRoleList = (props) => {
     setSelected(u);
     // Inline selection — call callback so parent can react (no modal required)
     if (onSelect) {
+<<<<<<< HEAD
       try { onSelect(u); } catch(e){}
+=======
+      try { console.log('[UserRoleList] selected user:', u && (u.id || u.Usuario || u.Nombre)); } catch(e){}
+      onSelect(u);
+>>>>>>> 5fbf38289c9abfae05a373607c2334a9a47b1674
     }
   };
 

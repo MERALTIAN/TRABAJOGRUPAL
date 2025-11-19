@@ -8,7 +8,11 @@ import TablaServicio from "../Components/TablaServicio.js";
 import ModalEditar from "../Components/ModalEditar.js"
 
 const Servicio = () => {
+<<<<<<< HEAD
   // debug log removed
+=======
+  console.log('DEBUG: Servicio view loaded from Practica-de-firebase1/src/views/Servicio.js');
+>>>>>>> 5fbf38289c9abfae05a373607c2334a9a47b1674
   const [servicios, setServicios] = useState([]);
   const [servicioEditar, setServicioEditar] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
