@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "MiProyecto",
+    "slug": "MiProyecto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.jeremyalvarez.miproyecto",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "FIREBASE_API_KEY": "AIzaSyA5GSVfwGFzxWOcTRPjoMlpxvzLYXUqa44",
+      "FIREBASE_AUTH_DOMAIN": "grupal-technowell.firebaseapp.com",
+      "FIREBASE_PROJECT_ID": "grupal-technowell",
+      "FIREBASE_STORAGE_BUCKET": "grupal-technowell.firebasestorage.app",
+      "FIREBASE_MESSAGING_SENDER_ID": "118234581644",
+      "FIREBASE_APP_ID": "1:118234581644:web:31809a05aa92a3643f49a9",
+      "FIREBASE_MEASUREMENT_ID": "G-F5S166WDZX",
+      "eas": {
+        "projectId": "90f20387-c51e-4638-9a01-9b268b4bbfb3"
+      }
+    }
+  }
+}
